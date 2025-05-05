@@ -8,7 +8,7 @@
                 <h2 class="mb-0">Edit Company: {{ company.name }}</h2>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {{ form.csrf_token }}
                     
                     <div class="mb-3">
@@ -34,6 +34,38 @@
                             </div>
                         {% endif %}
                         <div class="form-text">Full company address including street, city, state, and zip code.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="default_bank_id" class="form-label">Default Bank (Optional):</label>
+                        {{ form.default_bank_id(class="form-select", id="default_bank_id") }}
+                        {% if form.default_bank_id.errors %}
+                            <div class="text-danger">
+                                {% for error in form.default_bank_id.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Select a default bank for this company's checks.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="logo" class="form-label">Company Logo (Optional):</label>
+                        {% if company.logo %}
+                            <div class="mb-2">
+                                <img src="data:image/png;base64,{{ company.logo }}" alt="Company Logo" class="img-thumbnail" style="max-height: 100px;">
+                                <p class="form-text">Current logo</p>
+                            </div>
+                        {% endif %}
+                        {{ form.logo(class="form-control", id="logo") }}
+                        {% if form.logo.errors %}
+                            <div class="text-danger">
+                                {% for error in form.logo.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">Upload a new company logo (JPG, PNG, or GIF) to replace the current one.</div>
                     </div>
                     
                     <div class="d-flex justify-content-between">
