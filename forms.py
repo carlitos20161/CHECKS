@@ -1,8 +1,13 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, DecimalField, DateField, SelectField, FieldList, FormField, IntegerField, TextAreaField
+from wtforms import StringField, DecimalField, DateField, SelectField, FieldList, FormField, IntegerField, TextAreaField, SelectMultipleField, widgets
 from wtforms.validators import DataRequired, Length, ValidationError, NumberRange, Optional, Email
 import datetime
+
+class MultiCheckboxField(SelectMultipleField):
+    """Custom field for multiple checkbox selection."""
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
 
 class BankForm(FlaskForm):
     """Form for adding or editing banks."""
@@ -27,6 +32,7 @@ class CompanyClientForm(FlaskForm):
     contact_person = StringField('Contact Person', validators=[Optional(), Length(max=100)])
     contact_email = StringField('Contact Email', validators=[Optional(), Email(), Length(max=100)])
     contact_phone = StringField('Contact Phone', validators=[Optional(), Length(max=20)])
+    company_id = SelectField('Company', coerce=int, validators=[DataRequired()])
 
 class CompanyForm(FlaskForm):
     """Form for adding or editing companies."""
@@ -37,6 +43,7 @@ class CompanyForm(FlaskForm):
         Optional(),
         FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')
     ])
+    clients = MultiCheckboxField('Clients', coerce=int, validators=[Optional()])
 
 class EmployeeForm(FlaskForm):
     """Form for adding or editing employees."""
