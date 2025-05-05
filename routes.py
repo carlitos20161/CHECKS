@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash, abort, send_file, jsonify
 from app import db
-from models import Bank, Company, Employee, Check
-from forms import BankForm, CompanyForm, EmployeeForm, CheckForm, BatchCheckForm
+from models import Bank, Company, Employee, Check, CompanyClient
+from forms import BankForm, CompanyForm, EmployeeForm, CheckForm, BatchCheckForm, CompanyClientForm
 from utils.pdf_generator import generate_check_pdf
 from datetime import datetime
 import io
@@ -79,11 +79,25 @@ def configure_routes(app):
     def companies_create():
         """Create a new company."""
         form = CompanyForm()
+        form.default_bank_id.choices = [(0, '-- Select Bank (Optional) --')] + [(b.id, b.name) for b in Bank.query.all()]
+        
         if form.validate_on_submit():
             company = Company(
                 name=form.name.data,
-                address=form.address.data
+                address=form.address.data,
+                default_bank_id=form.default_bank_id.data if form.default_bank_id.data != 0 else None
             )
+            
+            # Handle logo upload if present
+            if form.logo.data:
+                try:
+                    logo_data = form.logo.data.read()
+                    import base64
+                    # Convert logo to base64 to store in database
+                    company.logo = base64.b64encode(logo_data).decode('utf-8')
+                except Exception as e:
+                    flash(f'Error processing logo upload: {str(e)}', 'danger')
+            
             db.session.add(company)
             db.session.commit()
             flash('Company created successfully!', 'success')
@@ -95,11 +109,35 @@ def configure_routes(app):
         """Edit an existing company."""
         company = Company.query.get_or_404(id)
         form = CompanyForm(obj=company)
+        form.default_bank_id.choices = [(0, '-- Select Bank (Optional) --')] + [(b.id, b.name) for b in Bank.query.all()]
+        
         if form.validate_on_submit():
             form.populate_obj(company)
+            
+            # Handle default bank
+            if form.default_bank_id.data == 0:
+                company.default_bank_id = None
+            
+            # Handle logo upload if present
+            if form.logo.data:
+                try:
+                    logo_data = form.logo.data.read()
+                    import base64
+                    # Convert logo to base64 to store in database
+                    company.logo = base64.b64encode(logo_data).decode('utf-8')
+                except Exception as e:
+                    flash(f'Error processing logo upload: {str(e)}', 'danger')
+            
             db.session.commit()
             flash('Company updated successfully!', 'success')
             return redirect(url_for('companies_index'))
+        
+        # Set the initial value of the default_bank_id
+        if company.default_bank_id:
+            form.default_bank_id.data = company.default_bank_id
+        else:
+            form.default_bank_id.data = 0
+            
         return render_template('companies/edit.html', form=form, company=company)
     
     @app.route('/companies/<int:id>/delete', methods=['POST'])
@@ -230,6 +268,9 @@ def configure_routes(app):
         form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
         form.employee_id.choices = [(e.id, e.name) for e in Employee.query.all()]
         
+        # Initialize client dropdown with empty option
+        form.client_id.choices = [(0, '-- Select Client (Optional) --')]
+        
         if form.validate_on_submit():
             bank = Bank.query.get(form.bank_id.data)
             if not bank:
@@ -239,13 +280,22 @@ def configure_routes(app):
             # Get the next check number from the bank
             check_number = bank.get_next_check_number()
             
+            # Create check with all the new fields
             check = Check(
                 bank_id=form.bank_id.data,
                 company_id=form.company_id.data,
                 employee_id=form.employee_id.data,
+                client_id=form.client_id.data if form.client_id.data != 0 else None,
                 amount=form.amount.data,
                 date=form.date.data,
-                check_number=check_number
+                check_number=check_number,
+                hours_worked=form.hours_worked.data,
+                pay_rate=form.pay_rate.data,
+                overtime_hours=form.overtime_hours.data,
+                overtime_rate=form.overtime_rate.data,
+                holiday_hours=form.holiday_hours.data,
+                holiday_rate=form.holiday_rate.data,
+                memo=form.memo.data
             )
             
             db.session.add(check)
@@ -264,6 +314,7 @@ def configure_routes(app):
         # Get all banks and companies for the select fields
         form.bank_id.choices = [(b.id, b.name) for b in Bank.query.all()]
         form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
+        form.client_id.choices = [(0, '-- Select Client (Optional) --')]
         
         if request.method == 'POST':
             # Get form data
@@ -289,9 +340,22 @@ def configure_routes(app):
                 flash('Selected bank not found.', 'danger')
                 return redirect(url_for('checks_batch'))
             
+            # Get client ID if provided
+            client_id = request.form.get('client_id', type=int)
+            client_id = client_id if client_id and client_id > 0 else None
+            
             # Process employee data - this comes from dynamic form fields
             employee_ids = request.form.getlist('employee_id', type=int)
             amounts = request.form.getlist('amount')
+            memos = request.form.getlist('memo')
+            
+            # Get pay calculation fields
+            hours_worked_list = request.form.getlist('hours_worked')
+            pay_rates = request.form.getlist('pay_rate')
+            overtime_hours_list = request.form.getlist('overtime_hours')
+            overtime_rates = request.form.getlist('overtime_rate')
+            holiday_hours_list = request.form.getlist('holiday_hours')
+            holiday_rates = request.form.getlist('holiday_rate')
             
             # Validate we have matching employee_ids and amounts
             if len(employee_ids) != len(amounts) or not employee_ids:
@@ -309,18 +373,35 @@ def configure_routes(app):
                     # Get the next check number
                     check_number = bank.get_next_check_number()
                     
+                    # Parse optional pay calculation fields
+                    memo = memos[i] if i < len(memos) else None
+                    hours_worked = float(hours_worked_list[i]) if i < len(hours_worked_list) and hours_worked_list[i] else None
+                    pay_rate = float(pay_rates[i]) if i < len(pay_rates) and pay_rates[i] else None
+                    overtime_hours = float(overtime_hours_list[i]) if i < len(overtime_hours_list) and overtime_hours_list[i] else None
+                    overtime_rate = float(overtime_rates[i]) if i < len(overtime_rates) and overtime_rates[i] else None
+                    holiday_hours = float(holiday_hours_list[i]) if i < len(holiday_hours_list) and holiday_hours_list[i] else None
+                    holiday_rate = float(holiday_rates[i]) if i < len(holiday_rates) and holiday_rates[i] else None
+                    
                     check = Check(
                         bank_id=bank_id,
                         company_id=company_id,
                         employee_id=employee_id,
+                        client_id=client_id,
                         amount=amount,
                         date=check_date,
-                        check_number=check_number
+                        check_number=check_number,
+                        memo=memo,
+                        hours_worked=hours_worked,
+                        pay_rate=pay_rate,
+                        overtime_hours=overtime_hours,
+                        overtime_rate=overtime_rate,
+                        holiday_hours=holiday_hours,
+                        holiday_rate=holiday_rate
                     )
                     db.session.add(check)
                     created_checks.append(check)
-                except (ValueError, TypeError):
-                    flash(f'Invalid amount for employee #{i+1}.', 'danger')
+                except (ValueError, TypeError) as e:
+                    flash(f'Invalid data for employee #{i+1}: {str(e)}', 'danger')
                     return redirect(url_for('checks_batch'))
             
             db.session.commit()
@@ -361,6 +442,65 @@ def configure_routes(app):
             mimetype='application/pdf'
         )
     
+    # Client routes
+    @app.route('/clients')
+    def clients_index():
+        """List all clients."""
+        clients = CompanyClient.query.all()
+        return render_template('clients/index.html', clients=clients)
+    
+    @app.route('/clients/create', methods=['GET', 'POST'])
+    def clients_create():
+        """Create a new client."""
+        form = CompanyClientForm()
+        # Get all companies for the select field
+        form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
+        
+        if form.validate_on_submit():
+            client = CompanyClient(
+                name=form.name.data,
+                address=form.address.data,
+                contact_person=form.contact_person.data,
+                contact_email=form.contact_email.data,
+                contact_phone=form.contact_phone.data,
+                company_id=form.company_id.data
+            )
+            db.session.add(client)
+            db.session.commit()
+            flash('Client created successfully!', 'success')
+            return redirect(url_for('clients_index'))
+        return render_template('clients/create.html', form=form)
+    
+    @app.route('/clients/<int:id>/edit', methods=['GET', 'POST'])
+    def clients_edit(id):
+        """Edit an existing client."""
+        client = CompanyClient.query.get_or_404(id)
+        form = CompanyClientForm(obj=client)
+        # Get all companies for the select field
+        form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
+        
+        if form.validate_on_submit():
+            form.populate_obj(client)
+            db.session.commit()
+            flash('Client updated successfully!', 'success')
+            return redirect(url_for('clients_index'))
+        return render_template('clients/edit.html', form=form, client=client)
+    
+    @app.route('/clients/<int:id>/delete', methods=['POST'])
+    def clients_delete(id):
+        """Delete a client."""
+        client = CompanyClient.query.get_or_404(id)
+        # Check if the client has any associated checks
+        if client.checks:
+            flash('Cannot delete client with associated checks.', 'danger')
+            return redirect(url_for('clients_index'))
+        
+        db.session.delete(client)
+        db.session.commit()
+        flash('Client deleted successfully!', 'success')
+        return redirect(url_for('clients_index'))
+    
+    # API routes
     @app.route('/api/employees/by-company/<int:company_id>')
     def api_employees_by_company(company_id):
         """API endpoint to get employees by company ID."""
@@ -369,3 +509,23 @@ def configure_routes(app):
             {'id': e.id, 'name': e.name, 'title': e.title}
             for e in employees
         ])
+        
+    @app.route('/api/clients/by-company/<int:company_id>')
+    def api_clients_by_company(company_id):
+        """API endpoint to get clients by company ID."""
+        clients = CompanyClient.query.filter_by(company_id=company_id).all()
+        return jsonify([
+            {'id': c.id, 'name': c.name, 'address': c.address}
+            for c in clients
+        ])
+        
+    @app.route('/api/company/<int:company_id>')
+    def api_company(company_id):
+        """API endpoint to get company details by ID."""
+        company = Company.query.get_or_404(company_id)
+        return jsonify({
+            'id': company.id,
+            'name': company.name,
+            'address': company.address,
+            'default_bank_id': company.default_bank_id
+        })
