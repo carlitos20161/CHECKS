@@ -52,21 +52,83 @@
                         
                         <h4 class="mt-4 mb-3">Employee Checks</h4>
                         
-                        <div id="employeeChecks">
-                            <!-- Employee rows will be added here dynamically -->
-                            <div class="row employee-row mb-2">
-                                <div class="col-md-6">
-                                    <select name="employee_id" class="form-select employee-select" required>
-                                        <option value="">Select Employee</option>
-                                    </select>
+                        <div class="mb-3">
+                            <label for="client_id" class="form-label">Client (Optional):</label>
+                            {{ form.client_id(class="form-select", id="client_id") }}
+                            {% if form.client_id.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.client_id.errors %}
+                                        {{ error }}
+                                    {% endfor %}
                                 </div>
-                                <div class="col-md-4">
-                                    <input type="number" name="amount" class="form-control" placeholder="Amount" step="0.01" min="0.01" required>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between">
+                                <h5 class="mb-0">Employee Checks</h5>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="showPayDetails">
+                                    <label class="form-check-label" for="showPayDetails">Show Pay Details</label>
                                 </div>
-                                <div class="col-md-2">
-                                    <button type="button" class="btn btn-danger btn-remove-row">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="employeeChecks">
+                                    <!-- Employee rows will be added here dynamically -->
+                                    <div class="row employee-row mb-3">
+                                        <div class="col-md-4">
+                                            <select name="employee_id" class="form-select employee-select" required>
+                                                <option value="">Select Employee</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="number" name="amount" class="form-control amount-input" placeholder="Amount" step="0.01" min="0.01" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" name="memo" class="form-control" placeholder="Memo (optional)">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-danger btn-remove-row">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-info btn-calculate ms-1">
+                                                <i class="fas fa-calculator"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Pay details section (hidden by default) -->
+                                        <div class="col-12 pay-details mt-2" style="display: none;">
+                                            <div class="card">
+                                                <div class="card-body bg-light">
+                                                    <div class="row">
+                                                        <div class="col-md-3 mb-2">
+                                                            <input type="number" name="hours_worked" class="form-control hours-input" placeholder="Hours" step="0.01" min="0">
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <input type="number" name="pay_rate" class="form-control rate-input" placeholder="Rate ($/hr)" step="0.01" min="0">
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <input type="number" name="overtime_hours" class="form-control ot-hours-input" placeholder="OT Hours" step="0.01" min="0">
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <input type="number" name="overtime_rate" class="form-control ot-rate-input" placeholder="OT Rate ($/hr)" step="0.01" min="0">
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-md-3 mb-2">
+                                                            <input type="number" name="holiday_hours" class="form-control holiday-hours-input" placeholder="Holiday Hours" step="0.01" min="0">
+                                                        </div>
+                                                        <div class="col-md-3 mb-2">
+                                                            <input type="number" name="holiday_rate" class="form-control holiday-rate-input" placeholder="Holiday Rate" step="0.01" min="0">
+                                                        </div>
+                                                        <div class="col-md-6 mb-2 d-flex align-items-end justify-content-end">
+                                                            <button type="button" class="btn btn-primary btn-sm btn-calculate-row">Calculate Amount</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

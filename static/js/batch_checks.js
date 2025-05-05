@@ -8,6 +8,7 @@ function initBatchChecksForm(employeesData) {
     const employeeChecks = document.getElementById('employeeChecks');
     const addEmployeeButton = document.getElementById('addEmployeeRow');
     const companySelect = document.getElementById('company_id');
+    const showPayDetailsCheckbox = document.getElementById('showPayDetails');
     
     // Initialize the first row's employee select
     updateEmployeeOptions();
@@ -16,6 +17,35 @@ function initBatchChecksForm(employeesData) {
     if (companySelect) {
         companySelect.addEventListener('change', function() {
             updateEmployeeOptions();
+            
+            // Also load clients for the selected company if the API exists
+            const clientSelect = document.getElementById('client_id');
+            if (clientSelect) {
+                const companyId = this.value;
+                if (companyId) {
+                    fetch(`/api/clients/by-company/${companyId}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            clientSelect.innerHTML = '<option value="">-- Select Client (Optional) --</option>';
+                            data.forEach(client => {
+                                const option = document.createElement('option');
+                                option.value = client.id;
+                                option.textContent = client.name;
+                                clientSelect.appendChild(option);
+                            });
+                        })
+                        .catch(error => {
+                            // If endpoint doesn't exist yet, just empty the dropdown
+                            clientSelect.innerHTML = '<option value="">-- Select Client (Optional) --</option>';
+                            console.log('Could not load clients:', error);
+                        });
+                }
+            }
         });
     }
     
@@ -25,6 +55,19 @@ function initBatchChecksForm(employeesData) {
             addEmployeeRow();
         });
     }
+    
+    // Toggle pay details sections
+    if (showPayDetailsCheckbox) {
+        showPayDetailsCheckbox.addEventListener('change', function() {
+            const payDetailsSections = document.querySelectorAll('.pay-details');
+            payDetailsSections.forEach(section => {
+                section.style.display = this.checked ? 'block' : 'none';
+            });
+        });
+    }
+    
+    // Setup initial calculation buttons
+    setupCalculationButtons();
     
     // Add event listener for existing remove button
     setupRemoveButtons();
@@ -57,45 +100,19 @@ function initBatchChecksForm(employeesData) {
     
     // Function to add a new employee row
     function addEmployeeRow() {
-        // Create a new row
-        const newRow = document.createElement('div');
-        newRow.className = 'row employee-row mb-2';
+        // Clone the first row as a template
+        const firstRow = document.querySelector('.employee-row');
+        const newRow = firstRow.cloneNode(true);
         
-        // Create employee select
-        const employeeCol = document.createElement('div');
-        employeeCol.className = 'col-md-6';
-        const employeeSelect = document.createElement('select');
-        employeeSelect.name = 'employee_id';
-        employeeSelect.className = 'form-select employee-select';
-        employeeSelect.required = true;
-        employeeCol.appendChild(employeeSelect);
+        // Clear all input values in the new row
+        const inputs = newRow.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.value = '';
+        });
         
-        // Create amount input
-        const amountCol = document.createElement('div');
-        amountCol.className = 'col-md-4';
-        const amountInput = document.createElement('input');
-        amountInput.type = 'number';
-        amountInput.name = 'amount';
-        amountInput.className = 'form-control';
-        amountInput.placeholder = 'Amount';
-        amountInput.step = '0.01';
-        amountInput.min = '0.01';
-        amountInput.required = true;
-        amountCol.appendChild(amountInput);
-        
-        // Create remove button
-        const buttonCol = document.createElement('div');
-        buttonCol.className = 'col-md-2';
-        const removeButton = document.createElement('button');
-        removeButton.type = 'button';
-        removeButton.className = 'btn btn-danger btn-remove-row';
-        removeButton.innerHTML = '<i class="fas fa-trash"></i>';
-        buttonCol.appendChild(removeButton);
-        
-        // Add all elements to the row
-        newRow.appendChild(employeeCol);
-        newRow.appendChild(amountCol);
-        newRow.appendChild(buttonCol);
+        // Reset select to default option
+        const select = newRow.querySelector('select');
+        select.selectedIndex = 0;
         
         // Add the row to the container
         employeeChecks.appendChild(newRow);
@@ -105,6 +122,9 @@ function initBatchChecksForm(employeesData) {
         
         // Setup remove button for the new row
         setupRemoveButtons();
+        
+        // Setup calculation buttons
+        setupCalculationButtons();
     }
     
     // Setup remove buttons for all rows
@@ -135,6 +155,92 @@ function initBatchChecksForm(employeesData) {
         });
     }
     
+    // Setup calculation buttons
+    function setupCalculationButtons() {
+        // Individual row calculation buttons
+        const calculateRowButtons = document.querySelectorAll('.btn-calculate-row');
+        calculateRowButtons.forEach(button => {
+            // Remove existing event listeners by cloning the button
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            // Add new event listener
+            newButton.addEventListener('click', function() {
+                const row = this.closest('.employee-row');
+                calculateRowAmount(row);
+            });
+        });
+        
+        // Quick calculation buttons (calculator icon)
+        const quickCalcButtons = document.querySelectorAll('.btn-calculate');
+        quickCalcButtons.forEach(button => {
+            // Remove existing event listeners by cloning the button
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            // Add new event listener
+            newButton.addEventListener('click', function() {
+                const row = this.closest('.employee-row');
+                // Toggle pay details visibility
+                const payDetails = row.querySelector('.pay-details');
+                if (payDetails) {
+                    const isVisible = payDetails.style.display !== 'none';
+                    payDetails.style.display = isVisible ? 'none' : 'block';
+                    
+                    // If showing, set the checkbox to checked
+                    if (!isVisible) {
+                        const showPayDetailsCheckbox = document.getElementById('showPayDetails');
+                        if (showPayDetailsCheckbox) {
+                            showPayDetailsCheckbox.checked = true;
+                        }
+                    }
+                }
+            });
+        });
+    }
+    
+    // Calculate total amount for a row based on hours and rates
+    function calculateRowAmount(row) {
+        const hoursInput = row.querySelector('.hours-input');
+        const rateInput = row.querySelector('.rate-input');
+        const otHoursInput = row.querySelector('.ot-hours-input');
+        const otRateInput = row.querySelector('.ot-rate-input');
+        const holidayHoursInput = row.querySelector('.holiday-hours-input');
+        const holidayRateInput = row.querySelector('.holiday-rate-input');
+        const amountInput = row.querySelector('.amount-input');
+        
+        if (amountInput) {
+            const hours = parseFloat(hoursInput.value) || 0;
+            const rate = parseFloat(rateInput.value) || 0;
+            const otHours = parseFloat(otHoursInput.value) || 0;
+            const otRate = parseFloat(otRateInput.value) || 0;
+            const holidayHours = parseFloat(holidayHoursInput.value) || 0;
+            const holidayRate = parseFloat(holidayRateInput.value) || 0;
+            
+            let total = 0;
+            
+            // Regular pay
+            if (hours > 0 && rate > 0) {
+                total += hours * rate;
+            }
+            
+            // Overtime pay
+            if (otHours > 0 && otRate > 0) {
+                total += otHours * otRate;
+            }
+            
+            // Holiday pay
+            if (holidayHours > 0 && holidayRate > 0) {
+                total += holidayHours * holidayRate;
+            }
+            
+            // Format to 2 decimal places and update amount field
+            if (total > 0) {
+                amountInput.value = total.toFixed(2);
+            }
+        }
+    }
+
     // Add submit event listener to validate the form
     const form = document.getElementById('batchCheckForm');
     if (form) {

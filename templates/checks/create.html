@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-md-10">
         <div class="card">
             <div class="card-header">
                 <h2 class="mb-0">Create New Check</h2>
@@ -12,60 +12,185 @@
                     <form method="post">
                         {{ form.csrf_token }}
                         
-                        <div class="mb-3">
-                            <label for="bank_id" class="form-label">Bank:</label>
-                            {{ form.bank_id(class="form-control", id="bank_id") }}
-                            {% if form.bank_id.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.bank_id.errors %}
-                                        {{ error }}
-                                    {% endfor %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="bank_id" class="form-label">Bank:</label>
+                                {{ form.bank_id(class="form-select", id="bank_id") }}
+                                {% if form.bank_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.bank_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="company_id" class="form-label">Company:</label>
+                                {{ form.company_id(class="form-select", id="company_id") }}
+                                {% if form.company_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.company_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="employee_id" class="form-label">Employee:</label>
+                                {{ form.employee_id(class="form-select", id="employee_id") }}
+                                {% if form.employee_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.employee_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="client_id" class="form-label">Client (Optional):</label>
+                                {{ form.client_id(class="form-select", id="client_id") }}
+                                {% if form.client_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.client_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Pay Calculation</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="hours_worked" class="form-label">Hours Worked:</label>
+                                        {{ form.hours_worked(class="form-control", id="hours_worked", placeholder="e.g., 40") }}
+                                        {% if form.hours_worked.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.hours_worked.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="pay_rate" class="form-label">Pay Rate ($/hr):</label>
+                                        {{ form.pay_rate(class="form-control", id="pay_rate", placeholder="e.g., 25.00") }}
+                                        {% if form.pay_rate.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.pay_rate.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                            {% endif %}
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="overtime_hours" class="form-label">Overtime Hours:</label>
+                                        {{ form.overtime_hours(class="form-control", id="overtime_hours", placeholder="e.g., 5") }}
+                                        {% if form.overtime_hours.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.overtime_hours.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="overtime_rate" class="form-label">Overtime Rate ($/hr):</label>
+                                        {{ form.overtime_rate(class="form-control", id="overtime_rate", placeholder="e.g., 37.50") }}
+                                        {% if form.overtime_rate.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.overtime_rate.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="holiday_hours" class="form-label">Holiday Hours:</label>
+                                        {{ form.holiday_hours(class="form-control", id="holiday_hours", placeholder="e.g., 8") }}
+                                        {% if form.holiday_hours.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.holiday_hours.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="holiday_rate" class="form-label">Holiday Rate ($/hr):</label>
+                                        {{ form.holiday_rate(class="form-control", id="holiday_rate", placeholder="e.g., 50.00") }}
+                                        {% if form.holiday_rate.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.holiday_rate.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i> 
+                                            Enter hours and rates to calculate pay automatically, or enter a total amount below.
+                                            <button type="button" id="calculateBtn" class="btn btn-sm btn-primary ms-2">Calculate Total</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="amount" class="form-label">Total Amount:</label>
+                                {{ form.amount(class="form-control", id="amount", placeholder="Enter total check amount") }}
+                                {% if form.amount.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.amount.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="date" class="form-label">Date:</label>
+                                {{ form.date(class="form-control", id="date", type="date") }}
+                                {% if form.date.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="company_id" class="form-label">Company:</label>
-                            {{ form.company_id(class="form-control", id="company_id") }}
-                            {% if form.company_id.errors %}
+                            <label for="memo" class="form-label">Memo:</label>
+                            {{ form.memo(class="form-control", id="memo", placeholder="Enter memo for check (optional)", rows="2") }}
+                            {% if form.memo.errors %}
                                 <div class="text-danger">
-                                    {% for error in form.company_id.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="employee_id" class="form-label">Employee:</label>
-                            {{ form.employee_id(class="form-control", id="employee_id") }}
-                            {% if form.employee_id.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.employee_id.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="amount" class="form-label">Amount:</label>
-                            {{ form.amount(class="form-control", id="amount", placeholder="Enter check amount") }}
-                            {% if form.amount.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.amount.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="date" class="form-label">Date:</label>
-                            {{ form.date(class="form-control", id="date", type="date") }}
-                            {% if form.date.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.date.errors %}
+                                    {% for error in form.memo.errors %}
                                         {{ error }}
                                     {% endfor %}
                                 </div>
@@ -114,6 +239,7 @@
 <script>
     // Filter employees based on selected company
     $(document).ready(function() {
+        // Handle company change for employee dropdown
         $('#company_id').change(function() {
             const companyId = $(this).val();
             if (companyId) {
@@ -126,6 +252,76 @@
                             .attr('value', employee.id)
                             .text(employee.name));
                     });
+                });
+                
+                // Also load clients for the selected company
+                $.getJSON(`/api/clients/by-company/${companyId}`, function(data) {
+                    const clientSelect = $('#client_id');
+                    clientSelect.empty();
+                    
+                    // Add empty option
+                    clientSelect.append($('<option></option>')
+                        .attr('value', '')
+                        .text('-- Select Client (Optional) --'));
+                    
+                    $.each(data, function(index, client) {
+                        clientSelect.append($('<option></option>')
+                            .attr('value', client.id)
+                            .text(client.name));
+                    });
+                }).fail(function() {
+                    // If endpoint doesn't exist yet, just empty the dropdown
+                    const clientSelect = $('#client_id');
+                    clientSelect.empty();
+                    clientSelect.append($('<option></option>')
+                        .attr('value', '')
+                        .text('-- Select Client (Optional) --'));
+                });
+            }
+        });
+        
+        // Calculate total amount based on hours and rates
+        $('#calculateBtn').click(function() {
+            const hours = parseFloat($('#hours_worked').val()) || 0;
+            const rate = parseFloat($('#pay_rate').val()) || 0;
+            const otHours = parseFloat($('#overtime_hours').val()) || 0;
+            const otRate = parseFloat($('#overtime_rate').val()) || 0;
+            const holidayHours = parseFloat($('#holiday_hours').val()) || 0;
+            const holidayRate = parseFloat($('#holiday_rate').val()) || 0;
+            
+            let total = 0;
+            
+            // Regular pay
+            if (hours > 0 && rate > 0) {
+                total += hours * rate;
+            }
+            
+            // Overtime pay
+            if (otHours > 0 && otRate > 0) {
+                total += otHours * otRate;
+            }
+            
+            // Holiday pay
+            if (holidayHours > 0 && holidayRate > 0) {
+                total += holidayHours * holidayRate;
+            }
+            
+            // Format to 2 decimal places and update amount field
+            if (total > 0) {
+                $('#amount').val(total.toFixed(2));
+            }
+        });
+        
+        // Use default bank if available when company changes
+        $('#company_id').change(function() {
+            const companyId = $(this).val();
+            if (companyId) {
+                $.getJSON(`/api/company/${companyId}`, function(data) {
+                    if (data.default_bank_id) {
+                        $('#bank_id').val(data.default_bank_id);
+                    }
+                }).fail(function() {
+                    // If endpoint doesn't exist yet, do nothing
                 });
             }
         });

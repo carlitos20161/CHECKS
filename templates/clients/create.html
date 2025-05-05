@@ -1,0 +1,99 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">Create New Client</h2>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {{ form.csrf_token }}
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Client Name:</label>
+                        {{ form.name(class="form-control", id="name", placeholder="Enter client name") }}
+                        {% if form.name.errors %}
+                            <div class="text-danger">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address:</label>
+                        {{ form.address(class="form-control", id="address", placeholder="Enter client address") }}
+                        {% if form.address.errors %}
+                            <div class="text-danger">
+                                {% for error in form.address.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_person" class="form-label">Contact Person:</label>
+                        {{ form.contact_person(class="form-control", id="contact_person", placeholder="Enter contact person name") }}
+                        {% if form.contact_person.errors %}
+                            <div class="text-danger">
+                                {% for error in form.contact_person.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_email" class="form-label">Contact Email:</label>
+                        {{ form.contact_email(class="form-control", id="contact_email", placeholder="Enter contact email") }}
+                        {% if form.contact_email.errors %}
+                            <div class="text-danger">
+                                {% for error in form.contact_email.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_phone" class="form-label">Contact Phone:</label>
+                        {{ form.contact_phone(class="form-control", id="contact_phone", placeholder="Enter contact phone") }}
+                        {% if form.contact_phone.errors %}
+                            <div class="text-danger">
+                                {% for error in form.contact_phone.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="company_id" class="form-label">Company:</label>
+                        {{ form.company_id(class="form-select", id="company_id") }}
+                        {% if form.company_id.errors %}
+                            <div class="text-danger">
+                                {% for error in form.company_id.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('clients_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Clients
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Create Client
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
