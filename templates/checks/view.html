@@ -30,12 +30,67 @@
                         <h4>Employee Information</h4>
                         <p><strong>Name:</strong> {{ check.employee.name }}</p>
                         <p><strong>Title:</strong> {{ check.employee.title }}</p>
+                        
+                        {% if check.hours_worked or check.overtime_hours or check.holiday_hours %}
+                        <h4 class="mt-3">Pay Breakdown</h4>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Hours</th>
+                                        <th>Rate</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if check.hours_worked %}
+                                    <tr>
+                                        <td>Regular</td>
+                                        <td>{{ check.hours_worked }}</td>
+                                        <td>${{ check.pay_rate }}</td>
+                                        <td>${{ (check.hours_worked|float * check.pay_rate|float)|round(2) }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    
+                                    {% if check.overtime_hours %}
+                                    <tr>
+                                        <td>Overtime</td>
+                                        <td>{{ check.overtime_hours }}</td>
+                                        <td>${{ check.overtime_rate }}</td>
+                                        <td>${{ (check.overtime_hours|float * check.overtime_rate|float)|round(2) }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    
+                                    {% if check.holiday_hours %}
+                                    <tr>
+                                        <td>Holiday</td>
+                                        <td>{{ check.holiday_hours }}</td>
+                                        <td>${{ check.holiday_rate }}</td>
+                                        <td>${{ (check.holiday_hours|float * check.holiday_rate|float)|round(2) }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    
+                                    <tr class="table-active">
+                                        <td colspan="3"><strong>Total</strong></td>
+                                        <td><strong>${{ check.amount }}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
                         <h4>Check Details</h4>
                         <p><strong>Check Number:</strong> {{ check.check_number }}</p>
                         <p><strong>Amount:</strong> ${{ check.amount }}</p>
                         <p><strong>Date:</strong> {{ check.date.strftime('%B %d, %Y') }}</p>
+                        {% if check.client %}
+                        <p><strong>Client:</strong> {{ check.client.name }}</p>
+                        {% endif %}
+                        {% if check.memo %}
+                        <p><strong>Memo:</strong> {{ check.memo }}</p>
+                        {% endif %}
                     </div>
                 </div>
                 
@@ -70,9 +125,38 @@
                                 <!-- This would show the amount in words -->
                                 <em>Amount in words would appear here</em>
                             </div>
+                            {% if check.hours_worked or check.overtime_hours or check.holiday_hours %}
+                            <div class="mt-2 mb-3 p-1" style="background-color: #f0f0f0; border-radius: 4px; font-size: 0.8em;">
+                                <div><strong>PAY BREAKDOWN:</strong></div>
+                                {% if check.hours_worked and check.pay_rate %}
+                                <div>Regular: {{ check.hours_worked }} hrs × ${{ check.pay_rate }} = ${{ (check.hours_worked|float * check.pay_rate|float)|round(2) }}</div>
+                                {% endif %}
+                                {% if check.overtime_hours and check.overtime_rate %}
+                                <div>Overtime: {{ check.overtime_hours }} hrs × ${{ check.overtime_rate }} = ${{ (check.overtime_hours|float * check.overtime_rate|float)|round(2) }}</div>
+                                {% endif %}
+                                {% if check.holiday_hours and check.holiday_rate %}
+                                <div>Holiday: {{ check.holiday_hours }} hrs × ${{ check.holiday_rate }} = ${{ (check.holiday_hours|float * check.holiday_rate|float)|round(2) }}</div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <small>Memo: Payment to {{ check.employee.title }}</small>
+                                    <small>
+                                        {% if check.client %}
+                                            {% if check.memo %}
+                                                Memo: {{ check.memo }} - Client: {{ check.client.name }}
+                                            {% else %}
+                                                Memo: Work for {{ check.client.name }}
+                                            {% endif %}
+                                        {% else %}
+                                            {% if check.memo %}
+                                                Memo: {{ check.memo }}
+                                            {% else %}
+                                                Memo: Payment to {{ check.employee.title }}
+                                            {% endif %}
+                                        {% endif %}
+                                    </small>
                                 </div>
                                 <div style="border-top: 1px solid #888; padding-top: 5px; width: 200px; text-align: center;">
                                     <small>Authorized Signature</small>

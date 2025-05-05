@@ -1,0 +1,67 @@
+✅ 1. Company Management
+ Add/edit company profile (name, EIN, address, email, phone)
+ Upload company logo
+ Input company banking info (bank name, routing number, account number)
+ Add multiple company locations/offices
+ Upload authorized signature image
+ Assign users with permissions per company
+✅ 2. Employee Management
+ Add/edit employee profile (name, contact info, SSN, address, etc.)
+ Assign employee to company and location
+ Set pay type (hourly/salary), rate, pay schedule
+ Define holiday eligibility
+ Store employee work status (active/terminated)
+ Upload supporting documents (e.g. W-4)
+ Ability to add basic info during check creation (quick add)
+✅ 3. Payroll & Check Generation
+ Input regular, overtime, holiday, and other hours or flat pay
+ Auto-calculate earnings based on pay rate & hours
+ Batch check processing
+ Select by company
+ Select employees by location, department, etc.
+ Select all with one click
+ Single check creation
+ Date selection for pay period
+ Summary breakdown on check:
+Regular: $X
+Overtime: $Y
+Holiday: $Z
+Other: $A
+ Save as draft or approve for printing
+ Auto-fill default check memo
+✅ 4. Check Printing
+ Generate printable PDF with MICR font
+ Include company logo & signature
+ Batch PDF output (multiple checks)
+ Save PDF records of printed checks
+✅ 5. Reports & Export
+ Date range filter (custom & preset: this week, last week, etc.)
+ Export payroll summary to Excel/CSV
+ Download individual or batch check history
+ Filter by company, employee, location
+✅ 6. Permissions & User Roles
+ Role-based access control:
+Admin: full access
+Payroll Staff: input only, cannot print
+Viewer: read-only
+ Per-company user assignment
+ Invite/manage users
+ Set/change roles
+ Track last login and activity
+✅ 7. Audit Logs
+ Log user actions:
+Created/edited/deleted employee
+Created/edited/printed checks
+Exported reports
+ Filter logs by user/date/action
+ Export logs
+✅ 8. File Handling
+ Upload:
+Company logo
+Signature image
+Employee docs
+ Export:
+Spreadsheet payroll reports
+Check PDF batches
+Logs
+ Import employee list or payroll data (CSV)
