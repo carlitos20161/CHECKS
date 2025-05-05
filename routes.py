@@ -81,6 +81,10 @@ def configure_routes(app):
         form = CompanyForm()
         form.default_bank_id.choices = [(0, '-- Select Bank (Optional) --')] + [(b.id, b.name) for b in Bank.query.all()]
         
+        # Get all clients for the multi-checkbox field
+        all_clients = CompanyClient.query.all()
+        form.clients.choices = [(c.id, c.name) for c in all_clients]
+        
         if form.validate_on_submit():
             company = Company(
                 name=form.name.data,
@@ -100,6 +104,17 @@ def configure_routes(app):
             
             db.session.add(company)
             db.session.commit()
+            
+            # Handle client associations
+            selected_client_ids = request.form.getlist('clients')
+            if selected_client_ids:
+                for client_id in selected_client_ids:
+                    client = CompanyClient.query.get(client_id)
+                    if client:
+                        client.company_id = company.id
+                
+                db.session.commit()
+            
             flash('Company created successfully!', 'success')
             return redirect(url_for('companies_index'))
         return render_template('companies/create.html', form=form)
@@ -110,6 +125,13 @@ def configure_routes(app):
         company = Company.query.get_or_404(id)
         form = CompanyForm(obj=company)
         form.default_bank_id.choices = [(0, '-- Select Bank (Optional) --')] + [(b.id, b.name) for b in Bank.query.all()]
+        
+        # Get all clients for the multi-checkbox field
+        all_clients = CompanyClient.query.all()
+        form.clients.choices = [(c.id, c.name) for c in all_clients]
+        
+        # Get currently associated client IDs
+        company_client_ids = [client.id for client in CompanyClient.query.filter_by(company_id=company.id).all()]
         
         if form.validate_on_submit():
             form.populate_obj(company)
@@ -128,6 +150,21 @@ def configure_routes(app):
                 except Exception as e:
                     flash(f'Error processing logo upload: {str(e)}', 'danger')
             
+            # Handle client associations
+            # First, clear existing associations by setting all current clients to no company
+            for client in CompanyClient.query.filter_by(company_id=company.id).all():
+                # Don't reset company_id if it's included in the newly selected clients
+                if str(client.id) not in request.form.getlist('clients'):
+                    client.company_id = None
+            
+            # Then, set new associations
+            selected_client_ids = request.form.getlist('clients')
+            if selected_client_ids:
+                for client_id in selected_client_ids:
+                    client = CompanyClient.query.get(client_id)
+                    if client:
+                        client.company_id = company.id
+            
             db.session.commit()
             flash('Company updated successfully!', 'success')
             return redirect(url_for('companies_index'))
@@ -138,7 +175,8 @@ def configure_routes(app):
         else:
             form.default_bank_id.data = 0
             
-        return render_template('companies/edit.html', form=form, company=company)
+        # Pass the currently selected client IDs to the template
+        return render_template('companies/edit.html', form=form, company=company, selected_client_ids=company_client_ids)
     
     @app.route('/companies/<int:id>/delete', methods=['POST'])
     def companies_delete(id):
