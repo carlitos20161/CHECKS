@@ -1,0 +1,77 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">Create New Employee</h2>
+            </div>
+            <div class="card-body">
+                {% if form.company_id.choices %}
+                    <form method="post">
+                        {{ form.csrf_token }}
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Employee Name:</label>
+                            {{ form.name(class="form-control", id="name", placeholder="Enter employee name") }}
+                            {% if form.name.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Job Title:</label>
+                            {{ form.title(class="form-control", id="title", placeholder="Enter job title") }}
+                            {% if form.title.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.title.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="company_id" class="form-label">Company:</label>
+                            {{ form.company_id(class="form-control", id="company_id") }}
+                            {% if form.company_id.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.company_id.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('employees_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Employees
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Create Employee
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> You need to create at least one company before adding employees.
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('employees_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Employees
+                        </a>
+                        <a href="{{ url_for('companies_create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i> Create Company
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

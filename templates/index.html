@@ -1,0 +1,70 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h1 class="card-title"><i class="fas fa-money-check-alt me-2"></i>Check Management System</h1>
+                <p class="card-text">Create, track, and print checks for multiple companies and employees</p>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-university fa-4x mb-3 text-primary"></i>
+                        <h5 class="card-title">Banks</h5>
+                        <p class="card-text">Manage bank accounts with routing and account numbers.</p>
+                        <a href="{{ url_for('banks_index') }}" class="btn btn-primary">Manage Banks</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-building fa-4x mb-3 text-success"></i>
+                        <h5 class="card-title">Companies</h5>
+                        <p class="card-text">Manage companies and their addresses.</p>
+                        <a href="{{ url_for('companies_index') }}" class="btn btn-success">Manage Companies</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-4x mb-3 text-info"></i>
+                        <h5 class="card-title">Employees</h5>
+                        <p class="card-text">Manage employees and their company affiliations.</p>
+                        <a href="{{ url_for('employees_index') }}" class="btn btn-info">Manage Employees</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-money-check fa-4x mb-3 text-warning"></i>
+                        <h5 class="card-title">Create a Check</h5>
+                        <p class="card-text">Generate a single check for an employee.</p>
+                        <a href="{{ url_for('checks_create') }}" class="btn btn-warning">Create Check</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-money-bill-wave fa-4x mb-3 text-danger"></i>
+                        <h5 class="card-title">Batch Create Checks</h5>
+                        <p class="card-text">Create multiple checks at once for different employees.</p>
+                        <a href="{{ url_for('checks_batch') }}" class="btn btn-danger">Batch Create</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

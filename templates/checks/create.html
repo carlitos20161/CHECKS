@@ -1,0 +1,134 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">Create New Check</h2>
+            </div>
+            <div class="card-body">
+                {% if form.bank_id.choices and form.company_id.choices and form.employee_id.choices %}
+                    <form method="post">
+                        {{ form.csrf_token }}
+                        
+                        <div class="mb-3">
+                            <label for="bank_id" class="form-label">Bank:</label>
+                            {{ form.bank_id(class="form-control", id="bank_id") }}
+                            {% if form.bank_id.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.bank_id.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="company_id" class="form-label">Company:</label>
+                            {{ form.company_id(class="form-control", id="company_id") }}
+                            {% if form.company_id.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.company_id.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="employee_id" class="form-label">Employee:</label>
+                            {{ form.employee_id(class="form-control", id="employee_id") }}
+                            {% if form.employee_id.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.employee_id.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount:</label>
+                            {{ form.amount(class="form-control", id="amount", placeholder="Enter check amount") }}
+                            {% if form.amount.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.amount.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date:</label>
+                            {{ form.date(class="form-control", id="date", type="date") }}
+                            {% if form.date.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.date.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Checks
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Create Check
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> You need to create at least one bank, company, and employee before creating checks.
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Checks
+                        </a>
+                        {% if not form.bank_id.choices %}
+                            <a href="{{ url_for('banks_create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Create Bank
+                            </a>
+                        {% elif not form.company_id.choices %}
+                            <a href="{{ url_for('companies_create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Create Company
+                            </a>
+                        {% elif not form.employee_id.choices %}
+                            <a href="{{ url_for('employees_create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Create Employee
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Filter employees based on selected company
+    $(document).ready(function() {
+        $('#company_id').change(function() {
+            const companyId = $(this).val();
+            if (companyId) {
+                $.getJSON(`/api/employees/by-company/${companyId}`, function(data) {
+                    const employeeSelect = $('#employee_id');
+                    employeeSelect.empty();
+                    
+                    $.each(data, function(index, employee) {
+                        employeeSelect.append($('<option></option>')
+                            .attr('value', employee.id)
+                            .text(employee.name));
+                    });
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Checks</h1>
+    <div>
+        <a href="{{ url_for('checks_create') }}" class="btn btn-primary me-2">
+            <i class="fas fa-plus me-1"></i> Create Check
+        </a>
+        <a href="{{ url_for('checks_batch') }}" class="btn btn-success">
+            <i class="fas fa-layer-group me-1"></i> Batch Create
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Filter Checks</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{{ url_for('checks_index') }}">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="bank_id" class="form-label">Bank:</label>
+                    <select name="bank_id" id="bank_id" class="form-select">
+                        <option value="">All Banks</option>
+                        {% for bank in banks %}
+                            <option value="{{ bank.id }}" {% if bank_id == bank.id %}selected{% endif %}>{{ bank.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="company_id" class="form-label">Company:</label>
+                    <select name="company_id" id="company_id" class="form-select">
+                        <option value="">All Companies</option>
+                        {% for company in companies %}
+                            <option value="{{ company.id }}" {% if company_id == company.id %}selected{% endif %}>{{ company.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="employee_id" class="form-label">Employee:</label>
+                    <select name="employee_id" id="employee_id" class="form-select">
+                        <option value="">All Employees</option>
+                        {% for employee in employees %}
+                            <option value="{{ employee.id }}" {% if employee_id == employee.id %}selected{% endif %}>{{ employee.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="start_date" class="form-label">Start Date:</label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date }}">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="end_date" class="form-label">End Date:</label>
+                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end mb-3">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-filter me-1"></i> Filter
+                    </button>
+                    <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if checks %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Check #</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Bank</th>
+                    <th>Company</th>
+                    <th>Employee</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for check in checks %}
+                    <tr>
+                        <td>{{ check.check_number }}</td>
+                        <td>{{ check.date.strftime('%Y-%m-%d') }}</td>
+                        <td>${{ check.amount }}</td>
+                        <td>{{ check.bank.name }}</td>
+                        <td>{{ check.company.name }}</td>
+                        <td>{{ check.employee.name }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('checks_view', id=check.id) }}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="{{ url_for('checks_pdf', id=check.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i> No checks found with the current filters. Try adjusting your search criteria or create new checks.
+    </div>
+{% endif %}
+{% endblock %}

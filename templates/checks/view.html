@@ -1,0 +1,94 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Check #{{ check.check_number }}</h2>
+                <a href="{{ url_for('checks_pdf', id=check.id) }}" class="btn btn-primary">
+                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>Bank Information</h4>
+                        <p><strong>Name:</strong> {{ check.bank.name }}</p>
+                        <p><strong>Routing Number:</strong> {{ check.bank.routing_number }}</p>
+                        <p><strong>Account Number:</strong> {{ check.bank.account_number }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Company Information</h4>
+                        <p><strong>Name:</strong> {{ check.company.name }}</p>
+                        <p><strong>Address:</strong> {{ check.company.address }}</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>Employee Information</h4>
+                        <p><strong>Name:</strong> {{ check.employee.name }}</p>
+                        <p><strong>Title:</strong> {{ check.employee.title }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Check Details</h4>
+                        <p><strong>Check Number:</strong> {{ check.check_number }}</p>
+                        <p><strong>Amount:</strong> ${{ check.amount }}</p>
+                        <p><strong>Date:</strong> {{ check.date.strftime('%B %d, %Y') }}</p>
+                    </div>
+                </div>
+                
+                <div class="mt-4 text-center">
+                    <div class="card p-4" style="border: 1px dashed #ccc;">
+                        <h3 class="card-title">Check Preview</h3>
+                        <div class="p-2 text-start" style="border: 1px solid #aaa; border-radius: 5px; background-color: #f8f9fa;">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5>{{ check.bank.name }}</h5>
+                                    <small>Routing: {{ check.bank.routing_number }}</small><br>
+                                    <small>Account: {{ check.bank.account_number }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <h5>{{ check.company.name }}</h5>
+                                    <small>{{ check.company.address }}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-3">
+                                <div>
+                                    <strong>Check No: {{ check.check_number }}</strong>
+                                </div>
+                                <div>
+                                    <strong>Date: {{ check.date.strftime('%B %d, %Y') }}</strong>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <span>Pay to the order of:</span> <strong>{{ check.employee.name }}</strong>
+                                <span class="float-end"><strong>${{ check.amount }}</strong></span>
+                            </div>
+                            <div class="mt-2 mb-4">
+                                <!-- This would show the amount in words -->
+                                <em>Amount in words would appear here</em>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <small>Memo: Payment to {{ check.employee.title }}</small>
+                                </div>
+                                <div style="border-top: 1px solid #888; padding-top: 5px; width: 200px; text-align: center;">
+                                    <small>Authorized Signature</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Checks
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

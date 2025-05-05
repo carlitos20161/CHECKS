@@ -1,0 +1,125 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">Batch Create Checks</h2>
+            </div>
+            <div class="card-body">
+                {% if form.bank_id.choices and form.company_id.choices %}
+                    <form method="post" id="batchCheckForm">
+                        {{ form.csrf_token }}
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="bank_id" class="form-label">Bank:</label>
+                                {{ form.bank_id(class="form-control", id="bank_id") }}
+                                {% if form.bank_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.bank_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="company_id" class="form-label">Company:</label>
+                                {{ form.company_id(class="form-control", id="company_id") }}
+                                {% if form.company_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.company_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="date" class="form-label">Date:</label>
+                                {{ form.date(class="form-control", id="date", type="date") }}
+                                {% if form.date.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <h4 class="mt-4 mb-3">Employee Checks</h4>
+                        
+                        <div id="employeeChecks">
+                            <!-- Employee rows will be added here dynamically -->
+                            <div class="row employee-row mb-2">
+                                <div class="col-md-6">
+                                    <select name="employee_id" class="form-select employee-select" required>
+                                        <option value="">Select Employee</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="number" name="amount" class="form-control" placeholder="Amount" step="0.01" min="0.01" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-danger btn-remove-row">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 mb-3">
+                            <button type="button" id="addEmployeeRow" class="btn btn-secondary">
+                                <i class="fas fa-plus me-1"></i> Add Another Employee
+                            </button>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Checks
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Create Checks
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> You need to create at least one bank and company before batch creating checks.
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Checks
+                        </a>
+                        {% if not form.bank_id.choices %}
+                            <a href="{{ url_for('banks_create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Create Bank
+                            </a>
+                        {% elif not form.company_id.choices %}
+                            <a href="{{ url_for('companies_create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Create Company
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/batch_checks.js') }}"></script>
+<script>
+    // Initialize the batch checks form with employee data
+    $(document).ready(function() {
+        // This data is passed from the server - all employees with their company associations
+        const employees = {{ employees|tojson }};
+        
+        initBatchChecksForm(employees);
+    });
+</script>
+{% endblock %}
