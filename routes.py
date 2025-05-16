@@ -2,33 +2,34 @@ from flask import render_template, request, redirect, url_for, flash, abort, sen
 from app import db
 from models import Bank, Company, Employee, Check, CompanyClient
 from forms import BankForm, CompanyForm, EmployeeForm, CheckForm, BatchCheckForm, CompanyClientForm
-from utils.pdf_generator import generate_check_pdf
+from utils.pdf_generator import generate_clean_check
+
 from datetime import datetime
 import io
 import os
 
 def configure_routes(app):
-    
+
     @app.context_processor
     def inject_now():
-        """Inject the current datetime into all templates."""
         return {'now': datetime.now()}
-    
+
+    @app.route('/checks/<int:id>', endpoint='checks_view')
+    def checks_view(id):
+        check = Check.query.get_or_404(id)
+        return render_template('checks/view.html', check=check)
+
     @app.route('/')
     def index():
-        """Home page route."""
         return render_template('index.html')
-    
-    # Bank routes
+
     @app.route('/banks')
     def banks_index():
-        """List all banks."""
         banks = Bank.query.all()
         return render_template('banks/index.html', banks=banks)
-    
+
     @app.route('/banks/create', methods=['GET', 'POST'])
     def banks_create():
-        """Create a new bank."""
         form = BankForm()
         if form.validate_on_submit():
             bank = Bank(
@@ -41,10 +42,9 @@ def configure_routes(app):
             flash('Bank created successfully!', 'success')
             return redirect(url_for('banks_index'))
         return render_template('banks/create.html', form=form)
-    
+
     @app.route('/banks/<int:id>/edit', methods=['GET', 'POST'])
     def banks_edit(id):
-        """Edit an existing bank."""
         bank = Bank.query.get_or_404(id)
         form = BankForm(obj=bank)
         if form.validate_on_submit():
@@ -53,16 +53,13 @@ def configure_routes(app):
             flash('Bank updated successfully!', 'success')
             return redirect(url_for('banks_index'))
         return render_template('banks/edit.html', form=form, bank=bank)
-    
+
     @app.route('/banks/<int:id>/delete', methods=['POST'])
     def banks_delete(id):
-        """Delete a bank."""
         bank = Bank.query.get_or_404(id)
-        # Check if the bank has any associated checks
         if bank.checks:
             flash('Cannot delete bank with associated checks.', 'danger')
             return redirect(url_for('banks_index'))
-        
         db.session.delete(bank)
         db.session.commit()
         flash('Bank deleted successfully!', 'success')
@@ -448,37 +445,30 @@ def configure_routes(app):
             return redirect(url_for('checks_index'))
         
         # Get all employees for JavaScript to use
+
         employees = Employee.query.all()
         employees_json = [{'id': e.id, 'name': e.name, 'company_id': e.company_id} for e in employees]
         
         return render_template('checks/batch.html', form=form, employees=employees_json)
-    
-    @app.route('/checks/<int:id>')
-    def checks_view(id):
-        """View details of a specific check."""
-        check = Check.query.get_or_404(id)
-        return render_template('checks/view.html', check=check)
-    
-    @app.route('/checks/<int:id>/pdf')
+
+    @app.route('/checks/<int:id>/pdf', endpoint='checks_pdf')
     def checks_pdf(id):
-        """Generate and download a PDF version of a check."""
         check = Check.query.get_or_404(id)
-        
-        # Generate the PDF
-        pdf_data = generate_check_pdf(check)
-        
-        # Create a file-like buffer to receive PDF data
+        from num2words import num2words
+        check.amount_words = num2words(
+            check.amount, to='currency', lang='en'
+        ).replace("euro", "dollars").capitalize()
+        pdf_data = generate_clean_check(check)
         buffer = io.BytesIO()
         buffer.write(pdf_data)
         buffer.seek(0)
-        
-        # Return the PDF as a downloadable file
         return send_file(
             buffer,
             as_attachment=True,
             download_name=f'check_{check.check_number}.pdf',
             mimetype='application/pdf'
         )
+
     
     # Client routes
     @app.route('/clients')

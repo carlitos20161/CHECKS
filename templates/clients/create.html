@@ -9,7 +9,7 @@
             </div>
             <div class="card-body">
                 <form method="post">
-                    {{ form.csrf_token }}
+                    {{ form.hidden_tag() }}
                     
                     <div class="mb-3">
                         <label for="name" class="form-label">Client Name:</label>
