@@ -71,9 +71,13 @@ class CheckForm(FlaskForm):
     memo = TextAreaField('Memo', validators=[Optional(), Length(max=200)])
     date = DateField('Date', validators=[DataRequired()], default=datetime.date.today)
     
-    def validate(self):
-        if not super().validate():
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators=extra_validators):
             return False
+
+    # your custom validation logic here (optional)
+        return True
+
             
         # If pay calculation fields are provided, verify we have at least hours and rate
         if (self.hours_worked.data is not None and self.hours_worked.data > 0 and 

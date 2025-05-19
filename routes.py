@@ -3,6 +3,7 @@ from app import db
 from models import Bank, Company, Employee, Check, CompanyClient
 from forms import BankForm, CompanyForm, EmployeeForm, CheckForm, BatchCheckForm, CompanyClientForm
 from utils.pdf_generator import generate_clean_check
+from collections import defaultdict
 
 from datetime import datetime
 import io
@@ -42,6 +43,11 @@ def configure_routes(app):
             flash('Bank created successfully!', 'success')
             return redirect(url_for('banks_index'))
         return render_template('banks/create.html', form=form)
+    @app.route('/api/clients/by-company/<int:company_id>')
+    def clients_by_company(company_id):
+        clients = CompanyClient.query.filter_by(company_id=company_id).all()
+        return jsonify([{"id": c.id, "name": c.name} for c in clients])
+
 
     @app.route('/banks/<int:id>/edit', methods=['GET', 'POST'])
     def banks_edit(id):
@@ -272,8 +278,12 @@ def configure_routes(app):
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
             query = query.filter(Check.date <= end_date)
         
-        # Order by most recent
         checks = query.order_by(Check.date.desc(), Check.check_number.desc()).all()
+        # Order by most recent
+        grouped_checks = defaultdict(list)
+        for check in checks:
+            grouped_checks[check.company.name].append(check)
+
         
         # Get all banks, companies, and employees for filter dropdowns
         banks = Bank.query.all()
@@ -282,7 +292,7 @@ def configure_routes(app):
         
         return render_template(
             'checks/index.html',
-            checks=checks,
+            grouped_checks=grouped_checks,
             banks=banks,
             companies=companies,
             employees=employees,
@@ -303,8 +313,17 @@ def configure_routes(app):
         form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
         form.employee_id.choices = [(e.id, e.name) for e in Employee.query.all()]
         
-        # Initialize client dropdown with empty option
-        form.client_id.choices = [(0, '-- Select Client (Optional) --')]
+        # Determine selected company from form or submitted data
+        selected_company_id = request.form.get('company_id', type=int) or form.company_id.data
+
+        # Always set client choices before validate_on_submit()
+        if selected_company_id:
+            client_choices = CompanyClient.query.filter_by(company_id=selected_company_id).all()
+            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [(c.id, c.name) for c in client_choices]
+        else:
+            form.client_id.choices = [(0, '-- Select Client (Optional) --')]
+
+
         
         if form.validate_on_submit():
             bank = Bank.query.get(form.bank_id.data)
