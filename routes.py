@@ -44,11 +44,40 @@ def configure_routes(app):
     def checks_view(id):
         check = Check.query.get_or_404(id)
         return render_template('checks/view.html', check=check)
+    
+    @app.route('/checks/<int:id>/flag', methods=['POST'])
+    @login_required
+    def flag_check(id):
+        check = Check.query.get_or_404(id)
+        if session.get('role') != 'admin' and check.created_by_id != session.get('user_id'):
+            abort(403)
+
+        reason = request.form.get('reason', '').strip()
+        check.flagged_by_user = True
+        check.flag_reason = reason
+        db.session.commit()
+        flash('Check has been flagged for admin review.', 'info')
+        return redirect(url_for('checks_view', id=check.id))
+
+        
+    @app.route('/checks/<int:id>/unflag', methods=['POST'])
+    @role_required('admin')
+    def unflag_check(id):
+        check = Check.query.get_or_404(id)
+        check.flagged_by_user = False
+        check.flag_reason = None
+        db.session.commit()
+        flash('Check marked as reviewed.', 'success')
+        return redirect(url_for('checks_view', id=id))
+
 
     @app.route('/')
     @login_required
     def index():
-        return render_template('index.html')
+        flagged_checks = []
+        if session.get('role') == 'admin':
+            flagged_checks = Check.query.filter_by(flagged_by_user=True).order_by(Check.date.desc()).all()
+        return render_template('index.html', flagged_checks=flagged_checks)
 
     @app.route('/banks')
     @login_required
@@ -291,6 +320,10 @@ def configure_routes(app):
         
         # Start with base query
         query = Check.query
+        if session.get('role') != 'admin':
+            query = query.filter(Check.created_by_id == session.get('user_id'))
+
+
         
         # Apply filters if they exist
         if bank_id:
@@ -340,6 +373,8 @@ def configure_routes(app):
         form.bank_id.choices = [(b.id, b.name) for b in Bank.query.all()]
         form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
         form.employee_id.choices = [(e.id, e.name) for e in Employee.query.all()]
+
+        created_by_id=session.get('user_id')
         
         # Determine selected company from form or submitted data
         selected_company_id = request.form.get('company_id', type=int) or form.company_id.data
@@ -377,7 +412,8 @@ def configure_routes(app):
                 overtime_rate=form.overtime_rate.data,
                 holiday_hours=form.holiday_hours.data,
                 holiday_rate=form.holiday_rate.data,
-                memo=form.memo.data
+                memo=form.memo.data,
+                created_by_id=session.get('user_id')
             )
             
             db.session.add(check)
@@ -397,6 +433,8 @@ def configure_routes(app):
         form.bank_id.choices = [(b.id, b.name) for b in Bank.query.all()]
         form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
         form.client_id.choices = [(0, '-- Select Client (Optional) --')]
+
+        created_by_id=session.get('user_id')
         
         if request.method == 'POST':
             # Get form data
@@ -478,7 +516,8 @@ def configure_routes(app):
                         overtime_hours=overtime_hours,
                         overtime_rate=overtime_rate,
                         holiday_hours=holiday_hours,
-                        holiday_rate=holiday_rate
+                        holiday_rate=holiday_rate,
+                        created_by_id=session.get('user_id')
                     )
                     db.session.add(check)
                     created_checks.append(check)
@@ -499,6 +538,7 @@ def configure_routes(app):
         return render_template('checks/batch.html', form=form, employees=employees_json)
 
     @app.route('/checks/<int:id>/pdf', endpoint='checks_pdf')
+    @role_required('admin')
     def checks_pdf(id):
         check = Check.query.get_or_404(id)
         from num2words import num2words

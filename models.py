@@ -1,5 +1,6 @@
 from datetime import datetime
 from app import db
+from flask import session
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -87,6 +88,9 @@ class Check(db.Model):
     check_number = db.Column(db.Integer, nullable=False)
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    flagged_by_user = db.Column(db.Boolean, default=False)
+    flag_reason = db.Column(db.String(255), nullable=True)
+
     
     # Pay calculation fields
     hours_worked = db.Column(db.Numeric(6, 2), nullable=True)
@@ -101,7 +105,10 @@ class Check(db.Model):
     bank_id = db.Column(db.Integer, db.ForeignKey('bank.id'), nullable=False)
     company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey('company_client.id'), nullable=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('company_client.id'), nullable=True)\
+    
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_by = db.relationship('User', backref='created_checks')
     
     # Relationships for the new foreign key
     client = db.relationship('CompanyClient', backref='checks', lazy=True)

@@ -80,6 +80,7 @@
                         <th>Amount</th>
                         <th>Bank</th>
                         <th>Employee</th>
+                        <th>Made by</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -91,14 +92,30 @@
                             <td>${{ check.amount }}</td>
                             <td>{{ check.bank.name }}</td>
                             <td>{{ check.employee.name }}</td>
+                            <td>{{ check.created_by.username if check.created_by else 'Unknown' }}</td>
+
                             <td>
                                 <div class="btn-group" role="group">
                                     <a href="{{ url_for('checks_view', id=check.id) }}" class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i> View
                                     </a>
+                                        {% if session.get('role') != 'admin' and not check.flagged_by_user %}
+                                            <form method="POST" action="{{ url_for('flag_check', id=check.id) }}" style="display:inline;">
+                                                <input type="hidden" name="reason" value="User requested review from index table.">
+                                                <button type="submit" class="btn btn-sm btn-outline-warning">
+                                                    <i class="fas fa-flag me-1"></i> Notify
+                                                </button>
+                                            </form>
+                                            {% elif check.flagged_by_user %}
+                                                <span class="badge bg-warning text-dark">Flagged</span>
+                                            {% endif %}
+
+                                    
+                                    {% if session.get('role') == 'admin' %}
                                     <a href="{{ url_for('checks_pdf', id=check.id) }}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-file-pdf"></i> PDF
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
