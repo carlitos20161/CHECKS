@@ -1,9 +1,11 @@
-from flask import render_template, request, redirect, url_for, flash, abort, send_file, jsonify
+from flask import render_template, request, redirect, url_for, flash, abort, send_file, session, jsonify
 from app import db
-from models import Bank, Company, Employee, Check, CompanyClient
+from models import Bank, Company, Employee, Check, User, CompanyClient
 from forms import BankForm, CompanyForm, EmployeeForm, CheckForm, BatchCheckForm, CompanyClientForm
 from utils.pdf_generator import generate_clean_check
 from collections import defaultdict
+from utils import login_required, role_required
+
 
 from datetime import datetime
 import io
@@ -11,20 +13,46 @@ import os
 
 def configure_routes(app):
 
+    @app.route('/register', methods=['GET', 'POST'])
+    def register():
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+
+            if User.query.filter_by(username=username).first():
+                flash('Username already exists.', 'danger')
+                return redirect(url_for('register'))
+
+            user = User(username=username, role='user')
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+
+            flash('Account created! Please log in.', 'success')
+            return redirect(url_for('login'))
+
+        return render_template('register.html')
+
+
+
     @app.context_processor
     def inject_now():
         return {'now': datetime.now()}
 
     @app.route('/checks/<int:id>', endpoint='checks_view')
+    @login_required
     def checks_view(id):
         check = Check.query.get_or_404(id)
         return render_template('checks/view.html', check=check)
 
     @app.route('/')
+    @login_required
     def index():
         return render_template('index.html')
 
     @app.route('/banks')
+    @login_required
+    @role_required('admin')
     def banks_index():
         banks = Bank.query.all()
         return render_template('banks/index.html', banks=banks)
@@ -565,7 +593,29 @@ def configure_routes(app):
             {'id': c.id, 'name': c.name, 'address': c.address}
             for c in clients
         ])
-        
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+
+            user = User.query.filter_by(username=username).first()
+            if user and user.check_password(password):
+                session['user_id'] = user.id
+                session['role'] = user.role
+                flash('Logged in successfully.', 'success')
+                return redirect(url_for('index'))
+            flash('Invalid username or password.', 'danger')
+
+        return render_template('login.html')
+
+
+    @app.route('/logout')
+    def logout():
+        session.clear()
+        flash('Logged out.', 'info')
+        return redirect(url_for('login'))
+            
     @app.route('/api/company/<int:company_id>')
     def api_company(company_id):
         """API endpoint to get company details by ID."""
@@ -576,3 +626,4 @@ def configure_routes(app):
             'address': company.address,
             'default_bank_id': company.default_bank_id
         })
+

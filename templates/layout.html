@@ -28,6 +28,7 @@
                         <a class="nav-link {% if request.path == '/' %}active{% endif %}" 
                            href="{{ url_for('index') }}">Home</a>
                     </li>
+                    {% if session.get('role') == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link {% if '/banks' in request.path %}active{% endif %}" 
                            href="{{ url_for('banks_index') }}">Banks</a>
@@ -40,6 +41,7 @@
                         <a class="nav-link {% if '/employees' in request.path %}active{% endif %}" 
                            href="{{ url_for('employees_index') }}">Employees</a>
                     </li>
+                    {% endif %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {% if '/checks' in request.path %}active{% endif %}" 
                            href="#" id="checksDropdown" role="button" 
