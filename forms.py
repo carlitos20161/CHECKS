@@ -2,6 +2,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, DecimalField, DateField, SelectField, FieldList, FormField, IntegerField, TextAreaField, SelectMultipleField, widgets
 from wtforms.validators import DataRequired, Length, ValidationError, NumberRange, Optional, Email
+from wtforms.validators import Optional
 import datetime
 
 class MultiCheckboxField(SelectMultipleField):
@@ -53,7 +54,7 @@ class EmployeeForm(FlaskForm):
 
 class CheckForm(FlaskForm):
     """Form for creating a single check."""
-    bank_id = SelectField('Bank', coerce=int, validators=[DataRequired()])
+    bank_id = SelectField('Bank', coerce=int, validators=[Optional()])
     company_id = SelectField('Company', coerce=int, validators=[DataRequired()])
     employee_id = SelectField('Employee', coerce=int, validators=[DataRequired()])
     client_id = SelectField('Client (Optional)', coerce=int, validators=[Optional()], default='')

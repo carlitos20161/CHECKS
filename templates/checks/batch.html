@@ -14,15 +14,20 @@
                         
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label for="bank_id" class="form-label">Bank:</label>
-                                {{ form.bank_id(class="form-control", id="bank_id") }}
-                                {% if form.bank_id.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.bank_id.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                              {% if session.get('role') == 'admin' %}
+<div class="col-md-4 mb-3">
+    <label for="bank_id" class="form-label">Bank:</label>
+    {{ form.bank_id(class="form-control", id="bank_id") }}
+    {% if form.bank_id.errors %}
+        <div class="text-danger">
+            {% for error in form.bank_id.errors %}
+                {{ error }}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
                             </div>
                             
                             <div class="col-md-4 mb-3">
@@ -175,13 +180,35 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/batch_checks.js') }}"></script>
+<script src="{{ url_for('static', filename='js/batch_checks.js') }}"></script>
 <script>
-    // Initialize the batch checks form with employee data
-    $(document).ready(function() {
-        // This data is passed from the server - all employees with their company associations
+    $(document).ready(function () {
+        // === Init employee row functionality
         const employees = {{ employees|tojson }};
-        
         initBatchChecksForm(employees);
+
+        // === Fetch clients when company changes
+        $('#company_id').on('change', function () {
+            const companyId = $(this).val();
+            if (companyId) {
+                $.getJSON(`/api/clients/by-company/${companyId}`, function (data) {
+                    const clientSelect = $('#client_id');
+                    clientSelect.empty();
+                    clientSelect.append($('<option value="">').text('-- Select Client (Optional) --'));
+                    $.each(data, function (index, client) {
+                        clientSelect.append($('<option></option>')
+                            .attr('value', client.id)
+                            .text(client.name));
+                    });
+                });
+            }
+        });
+
+        // === Trigger on load if a company is already selected
+        if ($('#company_id').val()) {
+            $('#company_id').trigger('change');
+        }
     });
 </script>
+
 {% endblock %}

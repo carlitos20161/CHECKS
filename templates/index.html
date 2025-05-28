@@ -18,24 +18,24 @@
             <div class="card-body text-center">
                 <h1 class="card-title"><i class="fas fa-money-check-alt me-2"></i>Check Management System</h1>
                 <p class="card-text">Create, track, and print checks for multiple companies and employees</p>
-                    {% if session.get('role') == 'admin' and flagged_checks %}
-<div class="alert alert-warning bg-light border-start border-5 border-warning shadow-sm text-dark">
+{% if session.get('role') == 'admin' and flagged_checks %}
+    <div class="alert bg-dark text-white border border-info shadow-sm">
     <h5 class="mb-3">
-        <i class="fas fa-flag me-2 text-warning"></i>
-        <strong class="text-dark">Flagged Checks Needing Review</strong>
+        <i class="fas fa-flag me-2 text-info"></i>
+        Flagged Checks Needing Review
     </h5>
     <ul class="list-unstyled mb-0">
         {% for check in flagged_checks %}
         <li class="mb-2">
-            <i class="fas fa-check-circle text-secondary me-1"></i>
-            <strong class="text-dark">#{{ check.check_number }}</strong>
+            <i class="fas fa-check-circle text-info me-1"></i>
+            <strong class="text-white">#{{ check.check_number }}</strong> 
             for <span class="text-success">${{ check.amount }}</span>
             <span class="text-muted">({{ check.date.strftime('%Y-%m-%d') }})</span>
             by <strong class="text-primary">{{ check.created_by.username }}</strong>
             {% if check.flag_reason %}
             — <span class="text-muted fst-italic">{{ check.flag_reason }}</span>
             {% endif %}
-            <a href="{{ url_for('checks_view', id=check.id) }}" class="btn btn-sm btn-outline-primary ms-2">
+            <a href="{{ url_for('checks_view', id=check.id) }}" class="btn btn-sm btn-outline-info ms-2">
                 <i class="fas fa-eye me-1"></i> View
             </a>
         </li>

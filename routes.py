@@ -5,6 +5,8 @@ from forms import BankForm, CompanyForm, EmployeeForm, CheckForm, BatchCheckForm
 from utils.pdf_generator import generate_clean_check
 from collections import defaultdict
 from utils import login_required, role_required
+from models import UserCompanyAssignment
+
 
 
 from datetime import datetime
@@ -68,7 +70,7 @@ def configure_routes(app):
         check.flag_reason = None
         db.session.commit()
         flash('Check marked as reviewed.', 'success')
-        return redirect(url_for('checks_view', id=id))
+        return redirect(url_for('checks_index'))
 
 
     @app.route('/')
@@ -100,11 +102,7 @@ def configure_routes(app):
             flash('Bank created successfully!', 'success')
             return redirect(url_for('banks_index'))
         return render_template('banks/create.html', form=form)
-    @app.route('/api/clients/by-company/<int:company_id>')
-    def clients_by_company(company_id):
-        clients = CompanyClient.query.filter_by(company_id=company_id).all()
-        return jsonify([{"id": c.id, "name": c.name} for c in clients])
-
+    
 
     @app.route('/banks/<int:id>/edit', methods=['GET', 'POST'])
     def banks_edit(id):
@@ -184,60 +182,50 @@ def configure_routes(app):
         """Edit an existing company."""
         company = Company.query.get_or_404(id)
         form = CompanyForm(obj=company)
+
+        # Populate bank choices
         form.default_bank_id.choices = [(0, '-- Select Bank (Optional) --')] + [(b.id, b.name) for b in Bank.query.all()]
-        
-        # Get all clients for the multi-checkbox field
+
+        # Get all available clients
         all_clients = CompanyClient.query.all()
         form.clients.choices = [(c.id, c.name) for c in all_clients]
-        
-        # Get currently associated client IDs
-        company_client_ids = [client.id for client in CompanyClient.query.filter_by(company_id=company.id).all()]
-        
+
+        # Get currently associated client IDs for checkbox pre-selection
+        company_client_ids = [client.id for client in company.clients]
+
         if form.validate_on_submit():
-            form.populate_obj(company)
-            
-            # Handle default bank
-            if form.default_bank_id.data == 0:
-                company.default_bank_id = None
-            
-            # Handle logo upload if present
+            # Manually assign standard fields
+            company.name = form.name.data
+            company.address = form.address.data
+            company.default_bank_id = form.default_bank_id.data if form.default_bank_id.data != 0 else None
+
+            # Handle logo upload
             if form.logo.data:
                 try:
                     logo_data = form.logo.data.read()
                     import base64
-                    # Convert logo to base64 to store in database
                     company.logo = base64.b64encode(logo_data).decode('utf-8')
                 except Exception as e:
                     flash(f'Error processing logo upload: {str(e)}', 'danger')
-            
-            # Handle client associations
-            # First, clear existing associations by setting all current clients to no company
-            for client in CompanyClient.query.filter_by(company_id=company.id).all():
-                # Don't reset company_id if it's included in the newly selected clients
-                if str(client.id) not in request.form.getlist('clients'):
-                    client.company_id = None
-            
-            # Then, set new associations
+
+            # Update associated clients
+            company.clients = []
             selected_client_ids = request.form.getlist('clients')
-            if selected_client_ids:
-                for client_id in selected_client_ids:
-                    client = CompanyClient.query.get(client_id)
-                    if client:
-                        client.company_id = company.id
-            
+            for client_id in selected_client_ids:
+                client = CompanyClient.query.get(int(client_id))
+                if client:
+                    company.clients.append(client)
+
             db.session.commit()
             flash('Company updated successfully!', 'success')
             return redirect(url_for('companies_index'))
-        
-        # Set the initial value of the default_bank_id
-        if company.default_bank_id:
-            form.default_bank_id.data = company.default_bank_id
-        else:
-            form.default_bank_id.data = 0
-            
-        # Pass the currently selected client IDs to the template
+
+        # Pre-select the current client IDs for rendering
         return render_template('companies/edit.html', form=form, company=company, selected_client_ids=company_client_ids)
-    
+
+
+
+
     @app.route('/companies/<int:id>/delete', methods=['POST'])
     def companies_delete(id):
         """Delete a company."""
@@ -347,9 +335,23 @@ def configure_routes(app):
 
         
         # Get all banks, companies, and employees for filter dropdowns
-        banks = Bank.query.all()
-        companies = Company.query.all()
-        employees = Employee.query.all()
+        if session.get('role') == 'admin':
+            banks = Bank.query.all()
+            companies = Company.query.all()
+            employees = Employee.query.all()
+        else:
+            user_id = session.get('user_id')
+
+            # Only companies where this user created checks
+            companies = db.session.query(Company).join(UserCompanyAssignment).filter(UserCompanyAssignment.user_id == user_id).all()
+
+
+            # Only banks related to those companies
+            banks = db.session.query(Bank).join(Check).filter(Check.created_by_id == user_id).distinct().all()
+
+            # Only employees from those companies
+            employees = db.session.query(Employee).join(Company).join(Check).filter(Check.created_by_id == user_id).distinct().all()
+
         
         return render_template(
             'checks/index.html',
@@ -366,79 +368,190 @@ def configure_routes(app):
     
     @app.route('/checks/create', methods=['GET', 'POST'])
     def checks_create():
-        """Create a new check."""
         form = CheckForm()
-        
-        # Get all banks, companies, and employees for the select fields
-        form.bank_id.choices = [(b.id, b.name) for b in Bank.query.all()]
-        form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
-        form.employee_id.choices = [(e.id, e.name) for e in Employee.query.all()]
+        user_id = session.get('user_id')
+        is_admin = session.get('role') == 'admin'
 
-        created_by_id=session.get('user_id')
-        
-        # Determine selected company from form or submitted data
+        # === Populate form choices ===
+        if is_admin:
+            form.bank_id.choices = [(b.id, b.name) for b in Bank.query.all()]
+            form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
+            form.employee_id.choices = [(e.id, e.name) for e in Employee.query.all()]
+        else:
+            # Get assigned companies
+            companies = db.session.query(Company).join(UserCompanyAssignment).filter(
+                UserCompanyAssignment.user_id == user_id
+            ).all()
+            form.company_id.choices = [(c.id, c.name) for c in companies]
+
+            # Default company
+            selected_company_id = request.form.get('company_id', type=int) or form.company_id.data
+            if not selected_company_id and len(companies) == 1:
+                selected_company_id = companies[0].id
+                form.company_id.data = selected_company_id
+
+            # Employees from that company
+            if selected_company_id:
+                form.employee_id.choices = [(e.id, e.name) for e in Employee.query.filter_by(company_id=selected_company_id).all()]
+            else:
+                form.employee_id.choices = []
+
+            # Skip bank_id for non-admin
+            form.bank_id.choices = []
+
+        # Client choices
         selected_company_id = request.form.get('company_id', type=int) or form.company_id.data
-
-        # Always set client choices before validate_on_submit()
         if selected_company_id:
-            client_choices = CompanyClient.query.filter_by(company_id=selected_company_id).all()
-            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [(c.id, c.name) for c in client_choices]
+            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
+                (c.id, c.name) for c in CompanyClient.query.filter_by(company_id=selected_company_id).all()
+            ]
         else:
             form.client_id.choices = [(0, '-- Select Client (Optional) --')]
 
+        # === Form Submit ===
+        if request.method == 'POST':
+            print("📨 Form submitted!")
+            print(f"Form data: {request.form}")
 
-        
+
         if form.validate_on_submit():
-            bank = Bank.query.get(form.bank_id.data)
-            if not bank:
-                flash('Selected bank not found.', 'danger')
-                return redirect(url_for('checks_create'))
-            
-            # Get the next check number from the bank
-            check_number = bank.get_next_check_number()
-            
-            # Create check with all the new fields
-            check = Check(
-                bank_id=form.bank_id.data,
-                company_id=form.company_id.data,
-                employee_id=form.employee_id.data,
-                client_id=form.client_id.data if form.client_id.data != 0 else None,
-                amount=form.amount.data,
-                date=form.date.data,
-                check_number=check_number,
-                hours_worked=form.hours_worked.data,
-                pay_rate=form.pay_rate.data,
-                overtime_hours=form.overtime_hours.data,
-                overtime_rate=form.overtime_rate.data,
-                holiday_hours=form.holiday_hours.data,
-                holiday_rate=form.holiday_rate.data,
-                memo=form.memo.data,
-                created_by_id=session.get('user_id')
-            )
-            
-            db.session.add(check)
-            db.session.commit()
-            
-            flash(f'Check #{check_number} created successfully!', 'success')
-            return redirect(url_for('checks_index'))
+            print("📥 POST RECEIVED")
+            print(f"🔍 Admin selected bank: {form.bank_id.data}")
+            print("✅ FORM VALIDATED")
+
+            try:
+                if is_admin:
+                    bank = Bank.query.get(form.bank_id.data)
+                    print(f"🔍 Admin selected bank: {bank}")
+                else:
+                    company = Company.query.get(form.company_id.data)
+                    bank = Bank.query.get(company.default_bank_id) if company else None
+                    print(f"🏦 Bank for non-admin: {bank}")
+
+                if not bank:
+                    flash('No valid bank found for the selected company.', 'danger')
+                    print("❌ Bank not found")
+                    return redirect(url_for('checks_create'))
+
+                check_number = bank.get_next_check_number()
+                print(f"🔢 Check number: {check_number}")
+
+                check = Check(
+                    bank_id=bank.id,
+                    company_id=form.company_id.data,
+                    employee_id=form.employee_id.data,
+                    client_id=form.client_id.data if form.client_id.data != 0 else None,
+                    amount=form.amount.data,
+                    date=form.date.data,
+                    check_number=check_number,
+                    hours_worked=form.hours_worked.data,
+                    pay_rate=form.pay_rate.data,
+                    overtime_hours=form.overtime_hours.data,
+                    overtime_rate=form.overtime_rate.data,
+                    holiday_hours=form.holiday_hours.data,
+                    holiday_rate=form.holiday_rate.data,
+                    memo=form.memo.data,
+                    created_by_id=user_id
+                )
+
+                print("💾 Committing check to database...")
+                db.session.add(check)
+                db.session.commit()
+                print("✅ Check committed successfully")
+
+                flash(f'Check #{check_number} created successfully!', 'success')
+                return redirect(url_for('checks_index'))
+
+            except Exception as e:
+                print("❌ ERROR DURING SUBMISSION:", str(e))
+                flash(f"Something went wrong: {e}", 'danger')
         
+        else:
+            if request.method == 'POST':
+                print("❌ FORM INVALID")
+                print(form.errors)
+                flash('Please fix the errors in the form.', 'danger')
+
+
+
         return render_template('checks/create.html', form=form)
+
+
+
+
+
+
+
+
+
+    @app.route('/assign-companies', methods=['GET', 'POST'])
+    @role_required('admin')
+    def assign_companies():
+        users = User.query.filter(User.role != 'admin').all()
+        companies = Company.query.all()
+
+        if request.method == 'POST':
+            user_id = int(request.form.get('user_id'))
+            selected_company_ids = request.form.getlist('company_ids')
+
+            # Clear previous assignments
+            UserCompanyAssignment.query.filter_by(user_id=user_id).delete()
+
+            # Assign selected companies
+            for company_id in selected_company_ids:
+                assignment = UserCompanyAssignment(user_id=user_id, company_id=int(company_id))
+                db.session.add(assignment)
+
+            db.session.commit()
+            flash('Company assignments updated successfully.', 'success')
+            return redirect(url_for('assign_companies'))
+
+        return render_template('admin/assign_companies.html', users=users, companies=companies)
+
+       
     
     @app.route('/checks/batch', methods=['GET', 'POST'])
     def checks_batch():
         """Create multiple checks at once."""
         form = BatchCheckForm()
+        user_id = session.get('user_id')
+        is_admin = session.get('role') == 'admin'
         
         # Get all banks and companies for the select fields
         form.bank_id.choices = [(b.id, b.name) for b in Bank.query.all()]
-        form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
-        form.client_id.choices = [(0, '-- Select Client (Optional) --')]
+        if is_admin:
+            form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
+        else:
+            user_companies = db.session.query(Company).join(UserCompanyAssignment).filter(UserCompanyAssignment.user_id == user_id).all()
+            form.company_id.choices = [(c.id, c.name) for c in user_companies]
+
+
+        selected_company_id = request.form.get('company_id', type=int) or form.company_id.data
+
+        if selected_company_id:
+            clients = CompanyClient.query.filter_by(company_id=selected_company_id).all()
+            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [(c.id, c.name) for c in clients]
+        else:
+            form.client_id.choices = [(0, '-- Select Client (Optional) --')]
 
         created_by_id=session.get('user_id')
         
         if request.method == 'POST':
             # Get form data
-            bank_id = request.form.get('bank_id', type=int)
+           # Get bank based on user role
+            if session.get('role') == 'admin':
+                bank_id = request.form.get('bank_id', type=int)
+            else:
+                company_id = request.form.get('company_id', type=int)
+                company = Company.query.get(company_id)
+                bank_id = company.default_bank_id if company else None
+
+            # Validate bank
+            bank = Bank.query.get(bank_id) if bank_id else None
+            if not bank:
+                flash('Bank not found or not associated with the company.', 'danger')
+                return redirect(url_for('checks_batch'))
+
             company_id = request.form.get('company_id', type=int)
             date_str = request.form.get('date')
             
@@ -600,6 +713,20 @@ def configure_routes(app):
             flash('Client updated successfully!', 'success')
             return redirect(url_for('clients_index'))
         return render_template('clients/edit.html', form=form, client=client)
+        
+    
+    @app.route('/checks/<int:id>/update-amount', methods=['POST'])
+    @role_required('admin')
+    def update_check_amount(id):
+        check = Check.query.get_or_404(id)
+        try:
+            check.amount = float(request.form['amount'])
+            db.session.commit()
+            flash('Check amount updated.', 'success')
+        except ValueError:
+            flash('Invalid amount.', 'danger')
+        return redirect(url_for('checks_view', id=id))
+
     
     @app.route('/clients/<int:id>/delete', methods=['POST'])
     def clients_delete(id):

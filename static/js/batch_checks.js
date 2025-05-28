@@ -15,39 +15,36 @@ function initBatchChecksForm(employeesData) {
     
     // Add event listener for company select change
     if (companySelect) {
-        companySelect.addEventListener('change', function() {
-            updateEmployeeOptions();
-            
-            // Also load clients for the selected company if the API exists
-            const clientSelect = document.getElementById('client_id');
-            if (clientSelect) {
-                const companyId = this.value;
-                if (companyId) {
-                    fetch(`/api/clients/by-company/${companyId}`)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            clientSelect.innerHTML = '<option value="">-- Select Client (Optional) --</option>';
-                            data.forEach(client => {
-                                const option = document.createElement('option');
-                                option.value = client.id;
-                                option.textContent = client.name;
-                                clientSelect.appendChild(option);
-                            });
-                        })
-                        .catch(error => {
-                            // If endpoint doesn't exist yet, just empty the dropdown
-                            clientSelect.innerHTML = '<option value="">-- Select Client (Optional) --</option>';
-                            console.log('Could not load clients:', error);
+    companySelect.addEventListener('change', function () {
+        const companyId = this.value;
+        const clientSelect = document.getElementById('client_id');
+
+        // Reset client dropdown
+        if (clientSelect) {
+            clientSelect.innerHTML = '<option value="0">-- Select Client (Optional) --</option>';
+
+            if (companyId) {
+                fetch(`/api/clients/by-company/${companyId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(client => {
+                            const option = document.createElement('option');
+                            option.value = client.id;
+                            option.textContent = client.name;
+                            clientSelect.appendChild(option);
                         });
-                }
+                    })
+                    .catch(err => {
+                        console.warn('Could not fetch clients:', err);
+                    });
             }
-        });
-    }
+        }
+
+        // Update employees too
+        updateEmployeeOptions();
+    });
+}
+
     
     // Add event listener for add employee button
     if (addEmployeeButton) {

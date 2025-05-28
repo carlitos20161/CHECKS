@@ -35,6 +35,19 @@ class User(db.Model):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+
+class UserCompanyAssignment(db.Model):
+    __tablename__ = 'user_company_assignment'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+
+    user = db.relationship('User', backref='company_assignments')
+    company = db.relationship('Company', backref='user_assignments')
+
+
 
 
 class CompanyClient(db.Model):
@@ -81,6 +94,7 @@ class Employee(db.Model):
     
     def __repr__(self):
         return f'<Employee {self.name}>'
+    
 
 class Check(db.Model):
     """Model for check information."""

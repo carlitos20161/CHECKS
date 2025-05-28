@@ -29,6 +29,13 @@
                            href="{{ url_for('index') }}">Home</a>
                     </li>
                     {% if session.get('role') == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/assign-companies' in request.path %}active{% endif %}" 
+                            href="{{ url_for('assign_companies') }}">Assign Companies</a>
+                        </li>
+                    {% endif %}
+
+                    {% if session.get('role') == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link {% if '/banks' in request.path %}active{% endif %}" 
                            href="{{ url_for('banks_index') }}">Banks</a>

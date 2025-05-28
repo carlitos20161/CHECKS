@@ -8,11 +8,12 @@
                 <h2 class="mb-0">Create New Check</h2>
             </div>
             <div class="card-body">
-                {% if form.bank_id.choices and form.company_id.choices and form.employee_id.choices %}
-                    <form method="post">
+                {% if form.company_id.choices %}
+                    <form method="post" action="">
                         {{ form.csrf_token }}
                         
                         <div class="row">
+                            {% if session.get('role') == 'admin' %}
                             <div class="col-md-6 mb-3">
                                 <label for="bank_id" class="form-label">Bank:</label>
                                 {{ form.bank_id(class="form-select", id="bank_id") }}
@@ -24,10 +25,11 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            
+                            {% endif %}
+
                             <div class="col-md-6 mb-3">
                                 <label for="company_id" class="form-label">Company:</label>
-                                {{ form.company_id(class="form-select", id="company_id") }}
+                                {{ form.company_id(class="form-select", id="company_id", required=True) }}
                                 {% if form.company_id.errors %}
                                     <div class="text-danger">
                                         {% for error in form.company_id.errors %}
@@ -37,11 +39,11 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="employee_id" class="form-label">Employee:</label>
-                                {{ form.employee_id(class="form-select", id="employee_id") }}
+                                {{ form.employee_id(class="form-select", id="employee_id", required=True) }}
                                 {% if form.employee_id.errors %}
                                     <div class="text-danger">
                                         {% for error in form.employee_id.errors %}
@@ -50,7 +52,7 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            
+
                             <div class="col-md-6 mb-3">
                                 <label for="client_id" class="form-label">Client (Optional):</label>
                                 {{ form.client_id(class="form-select", id="client_id") }}
@@ -63,90 +65,46 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
+
                         <div class="card mb-4">
-                            <div class="card-header">
-                                <h5 class="mb-0">Pay Calculation</h5>
-                            </div>
+                            <div class="card-header"><h5 class="mb-0">Pay Calculation</h5></div>
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="hours_worked" class="form-label">Hours Worked:</label>
                                         {{ form.hours_worked(class="form-control", id="hours_worked", placeholder="e.g., 40") }}
-                                        {% if form.hours_worked.errors %}
-                                            <div class="text-danger">
-                                                {% for error in form.hours_worked.errors %}
-                                                    {{ error }}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
                                     </div>
-                                    
+
                                     <div class="col-md-6 mb-3">
                                         <label for="pay_rate" class="form-label">Pay Rate ($/hr):</label>
                                         {{ form.pay_rate(class="form-control", id="pay_rate", placeholder="e.g., 25.00") }}
-                                        {% if form.pay_rate.errors %}
-                                            <div class="text-danger">
-                                                {% for error in form.pay_rate.errors %}
-                                                    {{ error }}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
                                     </div>
                                 </div>
-                                
+
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="overtime_hours" class="form-label">Overtime Hours:</label>
                                         {{ form.overtime_hours(class="form-control", id="overtime_hours", placeholder="e.g., 5") }}
-                                        {% if form.overtime_hours.errors %}
-                                            <div class="text-danger">
-                                                {% for error in form.overtime_hours.errors %}
-                                                    {{ error }}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
                                     </div>
-                                    
+
                                     <div class="col-md-6 mb-3">
                                         <label for="overtime_rate" class="form-label">Overtime Rate ($/hr):</label>
                                         {{ form.overtime_rate(class="form-control", id="overtime_rate", placeholder="e.g., 37.50") }}
-                                        {% if form.overtime_rate.errors %}
-                                            <div class="text-danger">
-                                                {% for error in form.overtime_rate.errors %}
-                                                    {{ error }}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
                                     </div>
                                 </div>
-                                
+
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="holiday_hours" class="form-label">Holiday Hours:</label>
                                         {{ form.holiday_hours(class="form-control", id="holiday_hours", placeholder="e.g., 8") }}
-                                        {% if form.holiday_hours.errors %}
-                                            <div class="text-danger">
-                                                {% for error in form.holiday_hours.errors %}
-                                                    {{ error }}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
                                     </div>
-                                    
+
                                     <div class="col-md-6 mb-3">
                                         <label for="holiday_rate" class="form-label">Holiday Rate ($/hr):</label>
                                         {{ form.holiday_rate(class="form-control", id="holiday_rate", placeholder="e.g., 50.00") }}
-                                        {% if form.holiday_rate.errors %}
-                                            <div class="text-danger">
-                                                {% for error in form.holiday_rate.errors %}
-                                                    {{ error }}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
                                     </div>
                                 </div>
-                                
+
                                 <div class="row">
                                     <div class="col-12">
                                         <div class="alert alert-info">
@@ -158,45 +116,24 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="amount" class="form-label">Total Amount:</label>
-                                {{ form.amount(class="form-control", id="amount", placeholder="Enter total check amount") }}
-                                {% if form.amount.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.amount.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                                {{ form.amount(class="form-control", id="amount", required=True, placeholder="Enter total check amount") }}
                             </div>
-                            
+
                             <div class="col-md-6 mb-3">
                                 <label for="date" class="form-label">Date:</label>
-                                {{ form.date(class="form-control", id="date", type="date") }}
-                                {% if form.date.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.date.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                                {{ form.date(class="form-control", id="date", type="date", required=True) }}
                             </div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="memo" class="form-label">Memo:</label>
-                            {{ form.memo(class="form-control", id="memo", placeholder="Enter memo for check (optional)", rows="2") }}
-                            {% if form.memo.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.memo.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
+                            {{ form.memo(class="form-control", id="memo", rows="2", placeholder="Enter memo for check (optional)") }}
                         </div>
-                        
+
                         <div class="d-flex justify-content-between">
                             <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-1"></i> Back to Checks
@@ -208,25 +145,7 @@
                     </form>
                 {% else %}
                     <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i> You need to create at least one bank, company, and employee before creating checks.
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> Back to Checks
-                        </a>
-                        {% if not form.bank_id.choices %}
-                            <a href="{{ url_for('banks_create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i> Create Bank
-                            </a>
-                        {% elif not form.company_id.choices %}
-                            <a href="{{ url_for('companies_create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i> Create Company
-                            </a>
-                        {% elif not form.employee_id.choices %}
-                            <a href="{{ url_for('employees_create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i> Create Employee
-                            </a>
-                        {% endif %}
+                        <i class="fas fa-exclamation-triangle me-2"></i> You need to create at least one company to proceed.
                     </div>
                 {% endif %}
             </div>
@@ -237,94 +156,65 @@
 
 {% block scripts %}
 <script>
-    // Filter employees based on selected company
-    $(document).ready(function() {
-        // Handle company change for employee dropdown
-        $('#company_id').change(function() {
-            const companyId = $(this).val();
-            if (companyId) {
-                $.getJSON(`/api/employees/by-company/${companyId}`, function(data) {
-                    const employeeSelect = $('#employee_id');
-                    employeeSelect.empty();
-                    
-                    $.each(data, function(index, employee) {
-                        employeeSelect.append($('<option></option>')
-                            .attr('value', employee.id)
-                            .text(employee.name));
-                    });
+$(document).ready(function() {
+    $('#company_id').change(function() {
+        const companyId = $(this).val();
+        if (companyId) {
+            $.getJSON(`/api/employees/by-company/${companyId}`, function(data) {
+                const employeeSelect = $('#employee_id');
+                employeeSelect.empty();
+                employeeSelect.append($('<option disabled selected value="">').text('-- Select Employee --'));
+                $.each(data, function(index, employee) {
+                    employeeSelect.append($('<option></option>')
+                        .attr('value', employee.id)
+                        .text(employee.name));
                 });
-                
-                // Also load clients for the selected company
-                $.getJSON(`/api/clients/by-company/${companyId}`, function(data) {
-                    const clientSelect = $('#client_id');
-                    clientSelect.empty();
-                    
-                    // Add empty option
+            });
+
+            $.getJSON(`/api/clients/by-company/${companyId}`, function(data) {
+                const clientSelect = $('#client_id');
+                clientSelect.empty();
+                clientSelect.append($('<option value="">').text('-- Select Client (Optional) --'));
+                $.each(data, function(index, client) {
                     clientSelect.append($('<option></option>')
-                        .attr('value', '')
-                        .text('-- Select Client (Optional) --'));
-                    
-                    $.each(data, function(index, client) {
-                        clientSelect.append($('<option></option>')
-                            .attr('value', client.id)
-                            .text(client.name));
-                    });
-                }).fail(function() {
-                    // If endpoint doesn't exist yet, just empty the dropdown
-                    const clientSelect = $('#client_id');
-                    clientSelect.empty();
-                    clientSelect.append($('<option></option>')
-                        .attr('value', '')
-                        .text('-- Select Client (Optional) --'));
+                        .attr('value', client.id)
+                        .text(client.name));
                 });
-            }
-        });
-        
-        // Calculate total amount based on hours and rates
-        $('#calculateBtn').click(function() {
-            const hours = parseFloat($('#hours_worked').val()) || 0;
-            const rate = parseFloat($('#pay_rate').val()) || 0;
-            const otHours = parseFloat($('#overtime_hours').val()) || 0;
-            const otRate = parseFloat($('#overtime_rate').val()) || 0;
-            const holidayHours = parseFloat($('#holiday_hours').val()) || 0;
-            const holidayRate = parseFloat($('#holiday_rate').val()) || 0;
-            
-            let total = 0;
-            
-            // Regular pay
-            if (hours > 0 && rate > 0) {
-                total += hours * rate;
-            }
-            
-            // Overtime pay
-            if (otHours > 0 && otRate > 0) {
-                total += otHours * otRate;
-            }
-            
-            // Holiday pay
-            if (holidayHours > 0 && holidayRate > 0) {
-                total += holidayHours * holidayRate;
-            }
-            
-            // Format to 2 decimal places and update amount field
-            if (total > 0) {
-                $('#amount').val(total.toFixed(2));
-            }
-        });
-        
-        // Use default bank if available when company changes
-        $('#company_id').change(function() {
-            const companyId = $(this).val();
-            if (companyId) {
-                $.getJSON(`/api/company/${companyId}`, function(data) {
-                    if (data.default_bank_id) {
-                        $('#bank_id').val(data.default_bank_id);
-                    }
-                }).fail(function() {
-                    // If endpoint doesn't exist yet, do nothing
-                });
-            }
-        });
+            }).fail(function() {
+                const clientSelect = $('#client_id');
+                clientSelect.empty();
+                clientSelect.append($('<option value="">').text('-- Select Client (Optional) --'));
+            });
+
+            $.getJSON(`/api/company/${companyId}`, function(data) {
+                if (data.default_bank_id && $('#bank_id').length > 0) {
+                    $('#bank_id').val(data.default_bank_id);
+                }
+            });
+
+        }
     });
+
+    if ($('#company_id').val()) {
+        $('#company_id').trigger('change');
+    }
+
+    $('#calculateBtn').click(function() {
+        const hours = parseFloat($('#hours_worked').val()) || 0;
+        const rate = parseFloat($('#pay_rate').val()) || 0;
+        const otHours = parseFloat($('#overtime_hours').val()) || 0;
+        const otRate = parseFloat($('#overtime_rate').val()) || 0;
+        const holidayHours = parseFloat($('#holiday_hours').val()) || 0;
+        const holidayRate = parseFloat($('#holiday_rate').val()) || 0;
+
+        let total = hours * rate + otHours * otRate + holidayHours * holidayRate;
+        $('#amount').val(total.toFixed(2));
+    });
+
+    // ✅ This needs to be inside document.ready!
+    $('form').on('submit', function (e) {
+        console.log("🚀 Form attempting to submit");
+    });
+});
 </script>
 {% endblock %}

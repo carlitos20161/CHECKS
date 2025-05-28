@@ -21,6 +21,7 @@
         <form method="get" action="{{ url_for('checks_index') }}">
             <div class="row">
                 <div class="col-md-3 mb-3">
+                    {% if session.get('role') == 'admin' %}
                     <label for="bank_id" class="form-label">Bank:</label>
                     <select name="bank_id" id="bank_id" class="form-select">
                         <option value="">All Banks</option>
@@ -28,16 +29,20 @@
                             <option value="{{ bank.id }}" {% if bank_id == bank.id %}selected{% endif %}>{{ bank.name }}</option>
                         {% endfor %}
                     </select>
+                     {% endif %}
                 </div>
                 <div class="col-md-3 mb-3">
                     <label for="company_id" class="form-label">Company:</label>
                     <select name="company_id" id="company_id" class="form-select">
-                        <option value="">All Companies</option>
+                        <option value="">Select Company</option>
                         {% for company in companies %}
-                            <option value="{{ company.id }}" {% if company_id == company.id %}selected{% endif %}>{{ company.name }}</option>
+                            <option value="{{ company.id }}" {% if company_id == company.id %}selected{% endif %}>
+                                {{ company.name }}
+                            </option>
                         {% endfor %}
                     </select>
                 </div>
+
                 <div class="col-md-3 mb-3">
                     <label for="employee_id" class="form-label">Employee:</label>
                     <select name="employee_id" id="employee_id" class="form-select">
@@ -89,13 +94,25 @@
                         <tr>
                             <td>{{ check.check_number }}</td>
                             <td>{{ check.date.strftime('%Y-%m-%d') }}</td>
-                            <td>${{ check.amount }}</td>
+                           <td>
+                {% if session.get('role') == 'admin' %}
+                <form method="POST" action="{{ url_for('update_check_amount', id=check.id) }}" class="d-flex">
+                  <input value="${{ check.amount }}" disabled class="form-control form-control-sm me-1" style="max-width: 100px;">
+
+                  
+                </form>
+                {% else %}
+                ${{ check.amount }}
+                {% endif %}
+            </td>
+
                             <td>{{ check.bank.name }}</td>
                             <td>{{ check.employee.name }}</td>
                             <td>{{ check.created_by.username if check.created_by else 'Unknown' }}</td>
 
                             <td>
                                 <div class="btn-group" role="group">
+                                    
                                     <a href="{{ url_for('checks_view', id=check.id) }}" class="btn btn-sm btn-info">
                                         <i class="fas fa-eye"></i> View
                                     </a>
