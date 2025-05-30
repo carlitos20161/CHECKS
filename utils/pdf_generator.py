@@ -93,14 +93,20 @@ def generate_clean_check(check):
             # === Amount Box with Dollar Sign ===
             c.setFont("Helvetica-Bold", 12)
 
-            # Draw dollar sign just to the left of the box
-            c.drawString(6.10 * inch, top - 71, "$")
+            # === Amount Box aligned with date line ===
+            amount_box_width = 1.2 * inch
+            amount_box_right = right  # 7.75 * inch
+            amount_box_left = amount_box_right - amount_box_width
+
+            # Dollar sign just left of the box
+            c.drawString(amount_box_left - 0.15 * inch, top - 71, "$")
 
             # Draw the rectangle for the amount
-            c.rect(6.25 * inch, top - 76, 1.2 * inch, 20)
+            c.rect(amount_box_left, top - 76, amount_box_width, 20)
 
             # Draw the amount inside the box
-            c.drawCentredString(6.85 * inch, top - 71, f"*** {check.amount:,.2f}")
+            c.drawCentredString(amount_box_left + amount_box_width / 2, top - 71, f"*** {check.amount:,.2f}")
+
 
 
 
@@ -115,22 +121,35 @@ def generate_clean_check(check):
             memo_value = check.memo or (f"Work for {check.client.name}" if check.client else "Work completed")
 
             c.setFont("Helvetica", 10)
-            memo_y = top - 130
-            c.drawString(left, memo_y, memo_label)
+            
+            # Use a shared y-position for both memo and signature
+            memo_and_signature_y = top - 130
 
-            # Draw memo value next to label
+            # === Memo ===
+            memo_label = "MEMO:"
+            memo_value = check.memo or (f"Work for {check.client.name}" if check.client else "Work completed")
+
+            c.setFont("Helvetica", 10)
+            c.drawString(left, memo_and_signature_y, memo_label)
+
             memo_value_x = left + c.stringWidth(memo_label + " ", "Helvetica", 10)
-            c.drawString(memo_value_x, memo_y, memo_value)
+            c.drawString(memo_value_x, memo_and_signature_y, memo_value)
 
-            # Draw a short line right after memo value
             line_end_x = memo_value_x + c.stringWidth(memo_value, "Helvetica", 10) + 20
-            c.line(memo_value_x, memo_y - 2, line_end_x, memo_y - 2)
+            c.line(memo_value_x, memo_and_signature_y - 2, line_end_x, memo_and_signature_y - 2)
 
-            # === Authorized Signature Line ===
-            signature_line_y = memo_y - 2
+            # === Authorized Signature (same height as memo)
+            signature_line_y = memo_and_signature_y - 2
             signature_x_start = right - 2.5 * inch
             signature_x_end = right
             c.line(signature_x_start, signature_line_y, signature_x_end, signature_line_y)
+            c.setFont("Helvetica", 8)
+            c.drawString(signature_x_start, signature_line_y - 10, "AUTHORIZED SIGNATURE")
+
+
+
+
+
             c.setFont("Helvetica", 8)
             c.drawString(signature_x_start, signature_line_y - 10, "AUTHORIZED SIGNATURE")
 
@@ -149,7 +168,7 @@ def generate_clean_check(check):
             c.drawString(left, y, check.employee.name)
             if check.client:
                 c.setFont("Helvetica-Oblique", 9)
-                c.drawString(left + 450, y, f"Client: {check.client.name}")
+                c.drawString(left + 435, y, f"Client: {check.client.name}")
             y -= 16
 
 
@@ -182,10 +201,47 @@ def generate_clean_check(check):
                 y -= 12
 
         if bottom_section:
+            y = top
             c.setFont("Helvetica-Bold", 10)
-            c.drawString(left, top, check.employee.name)
+            c.drawString(left, y, check.employee.name)
+            if check.client:
+                c.setFont("Helvetica-Oblique", 9)
+                c.drawString(left + 435, y, f"Client: {check.client.name}")
+            y -= 16
+
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(left, y, "Description")
+            c.drawRightString(5.5 * inch, y, "Amount")
+            y -= 12
             c.setFont("Helvetica", 9)
-            c.drawRightString(right, top, str(check.check_number))
+
+            if check.hours_worked and check.pay_rate:
+                c.drawString(left, y, f"Regular Hours ({check.hours_worked} × ${check.pay_rate:.2f})")
+                c.drawRightString(5.5 * inch, y, f"${check.hours_worked * check.pay_rate:.2f}")
+                y -= 12
+
+            if check.overtime_hours and check.overtime_rate:
+                c.drawString(left, y, f"Overtime Hours ({check.overtime_hours} × ${check.overtime_rate:.2f})")
+                c.drawRightString(5.5 * inch, y, f"${check.overtime_hours * check.overtime_rate:.2f}")
+                y -= 12
+
+            if check.holiday_hours and check.holiday_rate:
+                c.drawString(left, y, f"Holiday Hours ({check.holiday_hours} × ${check.holiday_rate:.2f})")
+                c.drawRightString(5.5 * inch, y, f"${check.holiday_hours * check.holiday_rate:.2f}")
+                y -= 12
+
+            c.drawString(left, y, "Total Amount")
+            c.drawRightString(5.5 * inch, y, f"${check.amount:,.2f}")
+            y -= 18
+
+            # === Additional Info (Optional)
+            c.setFont("Helvetica-Oblique", 8)
+            created_by = check.created_by.username if check.created_by else "Unknown"
+            c.drawString(left, y, f"Check #{check.check_number} created by {created_by} on {check.date.strftime('%Y-%m-%d')}")
+
+
+
+
 
     # Top: Full check
     draw_section(y_offset=2 * section_height, top_section=True)

@@ -33,6 +33,11 @@
                             <a class="nav-link {% if '/assign-companies' in request.path %}active{% endif %}" 
                             href="{{ url_for('assign_companies') }}">Assign Companies</a>
                         </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if '/clients' in request.path %}active{% endif %}" 
+                                href="{{ url_for('clients_index') }}">Company Clients</a>
+                            </li>
+
                     {% endif %}
 
                     {% if session.get('role') == 'admin' %}

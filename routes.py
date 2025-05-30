@@ -6,6 +6,7 @@ from utils.pdf_generator import generate_clean_check
 from collections import defaultdict
 from utils import login_required, role_required
 from models import UserCompanyAssignment
+from werkzeug.datastructures import FileStorage
 
 
 
@@ -151,15 +152,13 @@ def configure_routes(app):
             )
             
             # Handle logo upload if present
-            if form.logo.data:
+            if isinstance(form.logo.data, FileStorage) and form.logo.data.filename:
                 try:
                     logo_data = form.logo.data.read()
                     import base64
-                    # Convert logo to base64 to store in database
                     company.logo = base64.b64encode(logo_data).decode('utf-8')
                 except Exception as e:
                     flash(f'Error processing logo upload: {str(e)}', 'danger')
-            
             db.session.add(company)
             db.session.commit()
             
@@ -200,13 +199,14 @@ def configure_routes(app):
             company.default_bank_id = form.default_bank_id.data if form.default_bank_id.data != 0 else None
 
             # Handle logo upload
-            if form.logo.data:
+            if isinstance(form.logo.data, FileStorage) and form.logo.data.filename:
                 try:
                     logo_data = form.logo.data.read()
                     import base64
                     company.logo = base64.b64encode(logo_data).decode('utf-8')
                 except Exception as e:
                     flash(f'Error processing logo upload: {str(e)}', 'danger')
+
 
             # Update associated clients
             company.clients = []
