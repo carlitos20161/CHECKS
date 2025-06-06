@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>Assign Clients to User</h1>
+
+<form method="POST">
+    <div class="mb-3">
+        <label for="user_id" class="form-label">Select User:</label>
+        <select name="user_id" id="user_id" class="form-select" required>
+            <option value="">-- Choose User --</option>
+            {% for user in users %}
+            <option value="{{ user.id }}">{{ user.username }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Select Clients:</label>
+        {% for client in clients %}
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="client_ids" value="{{ client.id }}" id="client{{ client.id }}">
+            <label class="form-check-label" for="client{{ client.id }}">
+                {{ client.name }}
+            </label>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Assign</button>
+</form>
+
+<hr class="my-4">
+
+<h4 class="mt-4">Assigned Clients</h4>
+<div class="table-responsive">
+    <table class="table table-striped" id="assignedClientsTable">
+        <thead>
+            <tr>
+                <th>Client Name</th>
+                <th>Company</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- JavaScript will populate this -->
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const userSelect = document.querySelector('select[name="user_id"]');
+    const clientCheckboxes = document.querySelectorAll('input[name="client_ids"]');
+    const tableBody = document.querySelector('#assignedClientsTable tbody');
+
+    function updateClientAssignments(userId) {
+        fetch(`/api/assigned-clients/${userId}`)
+            .then(res => res.json())
+            .then(data => {
+                const assignedClientNames = data.map(d => d.client_name.toLowerCase());
+
+                // Update checkboxes
+                clientCheckboxes.forEach(box => {
+                    const label = box.nextElementSibling.textContent.trim().toLowerCase();
+                    box.checked = assignedClientNames.includes(label);
+                });
+
+                // Update table
+                tableBody.innerHTML = '';
+                data.forEach(entry => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${entry.client_name}</td>
+                        <td>${entry.company_name}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            });
+    }
+
+    userSelect.addEventListener("change", function () {
+        const selectedUserId = this.value;
+        if (selectedUserId) {
+            updateClientAssignments(selectedUserId);
+        } else {
+            tableBody.innerHTML = '';
+            clientCheckboxes.forEach(box => box.checked = false);
+        }
+    });
+
+    // Auto-load if user already selected (e.g., after a postback)
+    if (userSelect.value) {
+        updateClientAssignments(userSelect.value);
+    }
+});
+</script>
+{% endblock %}

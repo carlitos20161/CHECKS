@@ -1,26 +1,26 @@
 // Main JavaScript file for application-wide functions
 
-// Handle company change in forms to fetch related employees
-function setupCompanyEmployeeRelationship() {
-    const companySelect = document.getElementById('company_id');
+// Handle client change in forms to fetch related employees
+function setupClientEmployeeRelationship() {
+    const clientSelect = document.getElementById('client_id');
     const employeeSelect = document.getElementById('employee_id');
     
-    if (companySelect && employeeSelect) {
-        companySelect.addEventListener('change', function() {
-            const companyId = this.value;
-            if (companyId) {
-                // Clear existing options
+    if (clientSelect && employeeSelect) {
+        clientSelect.addEventListener('change', function() {
+            const clientId = this.value;
+            if (clientId) {
+                // Show loading text
                 employeeSelect.innerHTML = '<option value="">Loading employees...</option>';
                 
-                // Fetch employees for the selected company
-                fetch(`/api/employees/by-company/${companyId}`)
+                // Fetch employees for the selected client
+                fetch(`/api/employees/by-client/${clientId}`)
                     .then(response => response.json())
                     .then(data => {
                         employeeSelect.innerHTML = '';
                         if (data.length === 0) {
                             const option = document.createElement('option');
                             option.value = '';
-                            option.textContent = 'No employees found for this company';
+                            option.textContent = 'No employees found for this client';
                             employeeSelect.appendChild(option);
                         } else {
                             data.forEach(employee => {
@@ -36,8 +36,8 @@ function setupCompanyEmployeeRelationship() {
                         employeeSelect.innerHTML = '<option value="">Error loading employees</option>';
                     });
             } else {
-                // Clear employee select if no company is selected
-                employeeSelect.innerHTML = '<option value="">Select a company first</option>';
+                // No client selected
+                employeeSelect.innerHTML = '<option value="">Select a client first</option>';
             }
         });
     }
@@ -45,13 +45,11 @@ function setupCompanyEmployeeRelationship() {
 
 // Initialize tooltips, popovers, and other Bootstrap components
 function initializeBootstrapComponents() {
-    // Initialize tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
-    
-    // Initialize popovers
+
     const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
     popoverTriggerList.map(function (popoverTriggerEl) {
         return new bootstrap.Popover(popoverTriggerEl);
@@ -63,7 +61,6 @@ function formatCurrencyFields() {
     const currencyInputs = document.querySelectorAll('input[type="number"][step="0.01"]');
     currencyInputs.forEach(input => {
         input.addEventListener('blur', function() {
-            // If not empty, format to 2 decimal places
             if (this.value) {
                 this.value = parseFloat(this.value).toFixed(2);
             }
@@ -73,11 +70,11 @@ function formatCurrencyFields() {
 
 // Document ready function
 document.addEventListener('DOMContentLoaded', function() {
-    setupCompanyEmployeeRelationship();
+    setupClientEmployeeRelationship();
     initializeBootstrapComponents();
     formatCurrencyFields();
-    
-    // Add event listener for flash message close button
+
+    // Flash message dismiss
     const flashCloseButtons = document.querySelectorAll('.alert .btn-close');
     flashCloseButtons.forEach(button => {
         button.addEventListener('click', function() {

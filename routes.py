@@ -7,6 +7,8 @@ from collections import defaultdict
 from utils import login_required, role_required
 from models import UserCompanyAssignment
 from werkzeug.datastructures import FileStorage
+from models import UserClientAssignment
+
 
 
 
@@ -249,37 +251,47 @@ def configure_routes(app):
     
     @app.route('/employees/create', methods=['GET', 'POST'])
     def employees_create():
-        """Create a new employee."""
         form = EmployeeForm()
-        # Get all companies for the select field
-        form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
-        
+        # Populate client choices
+        clients = CompanyClient.query.all()
+        form.client_id.choices = [(c.id, c.name) for c in clients]
+
         if form.validate_on_submit():
+            selected_client = CompanyClient.query.get(form.client_id.data)
             employee = Employee(
                 name=form.name.data,
                 title=form.title.data,
-                company_id=form.company_id.data
+                client_id=selected_client.id,
+                company_id=selected_client.company_id  # Auto-fill company based on client
             )
             db.session.add(employee)
             db.session.commit()
             flash('Employee created successfully!', 'success')
             return redirect(url_for('employees_index'))
+
         return render_template('employees/create.html', form=form)
+
     
     @app.route('/employees/<int:id>/edit', methods=['GET', 'POST'])
     def employees_edit(id):
-        """Edit an existing employee."""
         employee = Employee.query.get_or_404(id)
         form = EmployeeForm(obj=employee)
-        # Get all companies for the select field
-        form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
-        
+
+        # Populate client dropdown
+        clients = CompanyClient.query.all()
+        form.client_id.choices = [(c.id, c.name) for c in clients]
+
         if form.validate_on_submit():
-            form.populate_obj(employee)
+            employee.name = form.name.data
+            employee.title = form.title.data
+            employee.client_id = form.client_id.data
+            employee.company_id = CompanyClient.query.get(form.client_id.data).company_id
             db.session.commit()
             flash('Employee updated successfully!', 'success')
             return redirect(url_for('employees_index'))
+
         return render_template('employees/edit.html', form=form, employee=employee)
+
     
     @app.route('/employees/<int:id>/delete', methods=['POST'])
     def employees_delete(id):
@@ -301,7 +313,7 @@ def configure_routes(app):
         """List all checks with filtering options."""
         # Get query parameters for filtering
         bank_id = request.args.get('bank_id', type=int)
-        company_id = request.args.get('company_id', type=int)
+        client_id = request.args.get('client_id', type=int)
         employee_id = request.args.get('employee_id', type=int)
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
@@ -316,8 +328,8 @@ def configure_routes(app):
         # Apply filters if they exist
         if bank_id:
             query = query.filter(Check.bank_id == bank_id)
-        if company_id:
-            query = query.filter(Check.company_id == company_id)
+        if client_id:
+            query = query.filter(Check.client_id == client_id)
         if employee_id:
             query = query.filter(Check.employee_id == employee_id)
         if start_date:
@@ -331,7 +343,8 @@ def configure_routes(app):
         # Order by most recent
         grouped_checks = defaultdict(list)
         for check in checks:
-            grouped_checks[check.company.name].append(check)
+            client_name = check.client.name if check.client else "No Client"
+            grouped_checks[client_name].append(check)
 
         
         # Get all banks, companies, and employees for filter dropdowns
@@ -352,18 +365,26 @@ def configure_routes(app):
             # Only employees from those companies
             employees = db.session.query(Employee).join(Company).join(Check).filter(Check.created_by_id == user_id).distinct().all()
 
-        
+        if session.get('role') == 'admin':
+            clients = CompanyClient.query.all()
+        else:
+            user_id = session.get('user_id')
+            assigned_client_ids = [a.client_id for a in UserClientAssignment.query.filter_by(user_id=user_id).all()]
+            clients = CompanyClient.query.filter(CompanyClient.id.in_(assigned_client_ids)).all()
+
+
         return render_template(
             'checks/index.html',
             grouped_checks=grouped_checks,
             banks=banks,
+            clients=clients, 
             companies=companies,
             employees=employees,
             bank_id=bank_id,
-            company_id=company_id,
             employee_id=employee_id,
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
+            client_id=client_id
         )
     
     @app.route('/checks/create', methods=['GET', 'POST'])
@@ -400,13 +421,22 @@ def configure_routes(app):
             form.bank_id.choices = []
 
         # Client choices
-        selected_company_id = request.form.get('company_id', type=int) or form.company_id.data
-        if selected_company_id:
-            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
-                (c.id, c.name) for c in CompanyClient.query.filter_by(company_id=selected_company_id).all()
-            ]
+        # Get clients assigned to this user
+        client_ids = [a.client_id for a in UserClientAssignment.query.filter_by(user_id=user_id).all()]
+        form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
+            (c.id, c.name) for c in CompanyClient.query.filter(CompanyClient.id.in_(client_ids)).all()
+        ]
+
+        # Get selected client (from POST or form default)
+        selected_client_id = request.form.get('client_id', type=int) or form.client_id.data
+
+        # Employees assigned to that client
+        if selected_client_id:
+            form.employee_id.choices = [(e.id, e.name) for e in Employee.query.filter_by(client_id=selected_client_id).all()]
         else:
-            form.client_id.choices = [(0, '-- Select Client (Optional) --')]
+            form.employee_id.choices = []
+
+                
 
         # === Form Submit ===
         if request.method == 'POST':
@@ -481,174 +511,189 @@ def configure_routes(app):
 
 
 
-
-
-
-    @app.route('/assign-companies', methods=['GET', 'POST'])
+    @app.route('/api/assigned-clients/<int:user_id>')
     @role_required('admin')
-    def assign_companies():
+    def get_assigned_clients(user_id):
+        assignments = UserClientAssignment.query.filter_by(user_id=user_id).all()
+        data = []
+        for a in assignments:
+            data.append({
+                "client_id": a.client.id,
+                "client_name": a.client.name,
+                "company_name": a.client.company.name if a.client.company else "NO COMPANY"
+            })
+        return jsonify(data)
+
+
+
+
+
+    @app.route('/assign-clients', methods=['GET', 'POST'])
+    @role_required('admin')
+    def assign_clients():
         users = User.query.filter(User.role != 'admin').all()
-        companies = Company.query.all()
+        clients = CompanyClient.query.all()
 
         if request.method == 'POST':
             user_id = int(request.form.get('user_id'))
-            selected_company_ids = request.form.getlist('company_ids')
+            selected_client_ids = request.form.getlist('client_ids')
 
-            # Clear previous assignments
-            UserCompanyAssignment.query.filter_by(user_id=user_id).delete()
+            # Clear previous
+            UserClientAssignment.query.filter_by(user_id=user_id).delete()
 
-            # Assign selected companies
-            for company_id in selected_company_ids:
-                assignment = UserCompanyAssignment(user_id=user_id, company_id=int(company_id))
-                db.session.add(assignment)
+            # Add new assignments
+            for client_id in selected_client_ids:
+                db.session.add(UserClientAssignment(user_id=user_id, client_id=int(client_id)))
 
             db.session.commit()
-            flash('Company assignments updated successfully.', 'success')
-            return redirect(url_for('assign_companies'))
+            flash('Client assignments updated successfully.', 'success')
+            return redirect(url_for('assign_clients'))
 
-        return render_template('admin/assign_companies.html', users=users, companies=companies)
 
-       
+        return render_template('admin/assign_clients.html', users=users, clients=clients)
     
+
+   
     @app.route('/checks/batch', methods=['GET', 'POST'])
     def checks_batch():
-        """Create multiple checks at once."""
+        """Create multiple checks at once (dynamically added like single check)."""
         form = BatchCheckForm()
         user_id = session.get('user_id')
         is_admin = session.get('role') == 'admin'
-        
-        # Get all banks and companies for the select fields
+
+        # Populate choices
         form.bank_id.choices = [(b.id, b.name) for b in Bank.query.all()]
         if is_admin:
             form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
         else:
-            user_companies = db.session.query(Company).join(UserCompanyAssignment).filter(UserCompanyAssignment.user_id == user_id).all()
-            form.company_id.choices = [(c.id, c.name) for c in user_companies]
-
+            companies = db.session.query(Company).join(UserCompanyAssignment).filter(
+                UserCompanyAssignment.user_id == user_id
+            ).all()
+            form.company_id.choices = [(c.id, c.name) for c in companies]
 
         selected_company_id = request.form.get('company_id', type=int) or form.company_id.data
 
-        if selected_company_id:
-            clients = CompanyClient.query.filter_by(company_id=selected_company_id).all()
-            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [(c.id, c.name) for c in clients]
+        # Populate client dropdown
+        if is_admin:
+            clients = CompanyClient.query.all()
         else:
-            form.client_id.choices = [(0, '-- Select Client (Optional) --')]
+            assigned_ids = [a.client_id for a in UserClientAssignment.query.filter_by(user_id=user_id).all()]
+            clients = CompanyClient.query.filter(CompanyClient.id.in_(assigned_ids)).all()
+        form.client_id.choices = [(0, '-- Select Client --')] + [(c.id, c.name) for c in clients]
 
-        created_by_id=session.get('user_id')
-        
         if request.method == 'POST':
-            # Get form data
-           # Get bank based on user role
-            if session.get('role') == 'admin':
+            client_id = request.form.get('client_id', type=int)
+            client = CompanyClient.query.get(client_id) if client_id else None
+            company_id = client.company_id if client else None
+
+            company = Company.query.get(company_id) if company_id else None
+
+            if not company and not is_admin:
+                flash('Please select a company.', 'danger')
+                return redirect(url_for('checks_batch'))
+
+            if is_admin:
                 bank_id = request.form.get('bank_id', type=int)
+                bank = Bank.query.get(bank_id) if bank_id else None
             else:
-                company_id = request.form.get('company_id', type=int)
-                company = Company.query.get(company_id)
-                bank_id = company.default_bank_id if company else None
+                bank_id = company.default_bank_id
+                bank = Bank.query.get(bank_id) if bank_id else None
 
-            # Validate bank
-            bank = Bank.query.get(bank_id) if bank_id else None
             if not bank:
-                flash('Bank not found or not associated with the company.', 'danger')
+                flash('No valid bank found for the selected company.', 'danger')
                 return redirect(url_for('checks_batch'))
 
-            company_id = request.form.get('company_id', type=int)
             date_str = request.form.get('date')
-            
-            # Validate required fields
-            if not bank_id or not company_id or not date_str:
-                flash('Please fill out all required fields.', 'danger')
-                return redirect(url_for('checks_batch'))
-            
-            # Convert date string to date object
             try:
                 check_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            except ValueError:
-                flash('Invalid date format.', 'danger')
+            except (ValueError, TypeError):
+                flash('Invalid or missing date.', 'danger')
                 return redirect(url_for('checks_batch'))
-            
-            # Get the bank
-            bank = Bank.query.get(bank_id)
-            if not bank:
-                flash('Selected bank not found.', 'danger')
-                return redirect(url_for('checks_batch'))
-            
-            # Get client ID if provided
+
             client_id = request.form.get('client_id', type=int)
             client_id = client_id if client_id and client_id > 0 else None
-            
-            # Process employee data - this comes from dynamic form fields
-            employee_ids = request.form.getlist('employee_id', type=int)
+
+            # Collect all employee rows from DOM (dynamic)
+            employee_ids = request.form.getlist('employee_id')
             amounts = request.form.getlist('amount')
             memos = request.form.getlist('memo')
-            
-            # Get pay calculation fields
             hours_worked_list = request.form.getlist('hours_worked')
             pay_rates = request.form.getlist('pay_rate')
             overtime_hours_list = request.form.getlist('overtime_hours')
             overtime_rates = request.form.getlist('overtime_rate')
             holiday_hours_list = request.form.getlist('holiday_hours')
             holiday_rates = request.form.getlist('holiday_rate')
-            
-            # Validate we have matching employee_ids and amounts
+
             if len(employee_ids) != len(amounts) or not employee_ids:
                 flash('Invalid employee or amount data.', 'danger')
                 return redirect(url_for('checks_batch'))
-            
-            # Create checks for each employee
+
             created_checks = []
-            for i, employee_id in enumerate(employee_ids):
+            for i in range(len(employee_ids)):
                 try:
-                    amount = float(amounts[i])
-                    if amount <= 0:
-                        raise ValueError("Amount must be positive")
-                    
-                    # Get the next check number
+                    emp_id = int(employee_ids[i]) if employee_ids[i] else None
+                    amount = float(amounts[i]) if amounts[i] else None
+                    if not emp_id or not amount or amount <= 0:
+                        raise ValueError("Invalid employee or amount")
+
                     check_number = bank.get_next_check_number()
-                    
-                    # Parse optional pay calculation fields
-                    memo = memos[i] if i < len(memos) else None
-                    hours_worked = float(hours_worked_list[i]) if i < len(hours_worked_list) and hours_worked_list[i] else None
-                    pay_rate = float(pay_rates[i]) if i < len(pay_rates) and pay_rates[i] else None
-                    overtime_hours = float(overtime_hours_list[i]) if i < len(overtime_hours_list) and overtime_hours_list[i] else None
-                    overtime_rate = float(overtime_rates[i]) if i < len(overtime_rates) and overtime_rates[i] else None
-                    holiday_hours = float(holiday_hours_list[i]) if i < len(holiday_hours_list) and holiday_hours_list[i] else None
-                    holiday_rate = float(holiday_rates[i]) if i < len(holiday_rates) and holiday_rates[i] else None
-                    
                     check = Check(
                         bank_id=bank_id,
                         company_id=company_id,
-                        employee_id=employee_id,
+                        employee_id=emp_id,
                         client_id=client_id,
                         amount=amount,
                         date=check_date,
                         check_number=check_number,
-                        memo=memo,
-                        hours_worked=hours_worked,
-                        pay_rate=pay_rate,
-                        overtime_hours=overtime_hours,
-                        overtime_rate=overtime_rate,
-                        holiday_hours=holiday_hours,
-                        holiday_rate=holiday_rate,
-                        created_by_id=session.get('user_id')
+                        memo=memos[i] if i < len(memos) else None,
+                        hours_worked=float(hours_worked_list[i]) if i < len(hours_worked_list) and hours_worked_list[i] else None,
+                        pay_rate=float(pay_rates[i]) if i < len(pay_rates) and pay_rates[i] else None,
+                        overtime_hours=float(overtime_hours_list[i]) if i < len(overtime_hours_list) and overtime_hours_list[i] else None,
+                        overtime_rate=float(overtime_rates[i]) if i < len(overtime_rates) and overtime_rates[i] else None,
+                        holiday_hours=float(holiday_hours_list[i]) if i < len(holiday_hours_list) and holiday_hours_list[i] else None,
+                        holiday_rate=float(holiday_rates[i]) if i < len(holiday_rates) and holiday_rates[i] else None,
+                        created_by_id=user_id
                     )
                     db.session.add(check)
                     created_checks.append(check)
-                except (ValueError, TypeError) as e:
-                    flash(f'Invalid data for employee #{i+1}: {str(e)}', 'danger')
-                    return redirect(url_for('checks_batch'))
-            
-            db.session.commit()
-            
-            flash(f'Successfully created {len(created_checks)} checks.', 'success')
-            return redirect(url_for('checks_index'))
-        
-        # Get all employees for JavaScript to use
 
-        employees = Employee.query.all()
-        employees_json = [{'id': e.id, 'name': e.name, 'company_id': e.company_id} for e in employees]
-        
+                except (ValueError, TypeError) as e:
+                    flash(f'Error in row {i+1}: {str(e)}', 'danger')
+                    return redirect(url_for('checks_batch'))
+
+            db.session.commit()
+            flash(f"Successfully created {len(created_checks)} checks.", 'success')
+            return redirect(url_for('checks_index'))
+
+        # Preload employees for JS
+        if is_admin:
+            employees = Employee.query.all()
+        else:
+            assigned_client_ids = [a.client_id for a in UserClientAssignment.query.filter_by(user_id=user_id).all()]
+            employees = Employee.query.filter(
+                (Employee.client_id.in_(assigned_client_ids)) | (Employee.client_id == None)
+            ).all()
+
+        employees_json = [
+            {
+                'id': e.id,
+                'name': e.name,
+                'company_id': e.company_id,
+                'client_id': e.client_id if e.client_id is not None else 0
+            }
+            for e in employees
+        ]
+
         return render_template('checks/batch.html', form=form, employees=employees_json)
+
+
+
+            
+            
+        
+
+
+
 
     @app.route('/checks/<int:id>/pdf', endpoint='checks_pdf')
     @role_required('admin')
@@ -743,14 +788,11 @@ def configure_routes(app):
         return redirect(url_for('clients_index'))
     
     # API routes
-    @app.route('/api/employees/by-company/<int:company_id>')
-    def api_employees_by_company(company_id):
-        """API endpoint to get employees by company ID."""
-        employees = Employee.query.filter_by(company_id=company_id).all()
-        return jsonify([
-            {'id': e.id, 'name': e.name, 'title': e.title}
-            for e in employees
-        ])
+    @app.route('/api/employees/by-client/<int:client_id>')
+    def employees_by_client(client_id):
+        employees = Employee.query.filter_by(client_id=client_id).all()
+        return jsonify([{'id': e.id, 'name': e.name} for e in employees])
+
         
     @app.route('/api/clients/by-company/<int:company_id>')
     def api_clients_by_company(company_id):

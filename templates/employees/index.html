@@ -16,6 +16,7 @@
                     <th>Name</th>
                     <th>Title</th>
                     <th>Company</th>
+                    <th>Client</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -25,6 +26,7 @@
                         <td>{{ employee.name }}</td>
                         <td>{{ employee.title }}</td>
                         <td>{{ employee.company.name }}</td>
+                        <td>{{ employee.client.name if employee.client else 'NO CLIENT' }}</td>
                         <td>
                             <div class="btn-group" role="group">
                                 <a href="{{ url_for('employees_edit', id=employee.id) }}" class="btn btn-sm btn-secondary">

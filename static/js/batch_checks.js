@@ -13,37 +13,20 @@ function initBatchChecksForm(employeesData) {
     // Initialize the first row's employee select
     updateEmployeeOptions();
     
-    // Add event listener for company select change
-    if (companySelect) {
-    companySelect.addEventListener('change', function () {
-        const companyId = this.value;
-        const clientSelect = document.getElementById('client_id');
+   
+    // Add event listener for client select change
+    const clientSelect = document.getElementById('client_id');
+    if (clientSelect) {
+        clientSelect.addEventListener('change', function () {
+            updateEmployeeOptions();
+        });
 
-        // Reset client dropdown
-        if (clientSelect) {
-            clientSelect.innerHTML = '<option value="0">-- Select Client (Optional) --</option>';
-
-            if (companyId) {
-                fetch(`/api/clients/by-company/${companyId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.forEach(client => {
-                            const option = document.createElement('option');
-                            option.value = client.id;
-                            option.textContent = client.name;
-                            clientSelect.appendChild(option);
-                        });
-                    })
-                    .catch(err => {
-                        console.warn('Could not fetch clients:', err);
-                    });
-            }
+        // Trigger once on page load if client is already selected
+        if (clientSelect.value) {
+            updateEmployeeOptions();
         }
+    }
 
-        // Update employees too
-        updateEmployeeOptions();
-    });
-}
 
     
     // Add event listener for add employee button
@@ -70,30 +53,38 @@ function initBatchChecksForm(employeesData) {
     setupRemoveButtons();
     
     // Function to update employee options based on selected company
-    function updateEmployeeOptions() {
-        const companyId = companySelect ? parseInt(companySelect.value) : null;
-        const employeeSelects = document.querySelectorAll('.employee-select');
-        
-        employeeSelects.forEach(select => {
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">Select Employee</option>';
-            
-            // Filter employees by company if a company is selected
-            const filteredEmployees = companyId 
-                ? employeesData.filter(emp => emp.company_id === companyId)
-                : employeesData;
-            
-            filteredEmployees.forEach(employee => {
-                const option = document.createElement('option');
-                option.value = employee.id;
-                option.textContent = employee.name;
-                if (currentValue && parseInt(currentValue) === employee.id) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
+  function updateEmployeeOptions() {
+    const clientSelect = document.getElementById('client_id');
+    const clientId = clientSelect ? parseInt(clientSelect.value) : null;
+    const employeeSelects = document.querySelectorAll('.employee-select');
+
+    employeeSelects.forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">Select Employee</option>';
+        console.log("Client ID:", clientId);
+        console.log("All employees:", employeesData);
+
+        const filteredEmployees = employeesData.filter(emp => {
+            return !clientId || clientId == 0 || emp.client_id == clientId;
         });
-    }
+
+        console.log("Filtered:", filteredEmployees);
+
+
+
+
+        filteredEmployees.forEach(employee => {
+            const option = document.createElement('option');
+            option.value = employee.id;
+            option.textContent = employee.name;
+            if (currentValue && parseInt(currentValue) === employee.id) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+    });
+}
+
     
     // Function to add a new employee row
     function addEmployeeRow() {
@@ -238,43 +229,64 @@ function initBatchChecksForm(employeesData) {
         }
     }
 
+function addEmployeeRow() {
+    const rows = document.querySelectorAll('.employee-row');
+    const newIndex = rows.length;
+
+    const firstRow = document.querySelector('.employee-row');
+    const newRow = firstRow.cloneNode(true);
+
+    // Update names and clear values
+    newRow.querySelectorAll('input, select, textarea').forEach(el => {
+        const name = el.getAttribute('name');
+        if (name) {
+            const newName = name.replace(/\d+/, newIndex);
+            el.setAttribute('name', newName);
+        }
+        el.value = '';
+    });
+
+    employeeChecks.appendChild(newRow);
+    updateEmployeeOptions();
+    setupRemoveButtons();
+    setupCalculationButtons();
+}
+
+
     // Add submit event listener to validate the form
     const form = document.getElementById('batchCheckForm');
-    if (form) {
-        form.addEventListener('submit', function(event) {
-            const rows = document.querySelectorAll('.employee-row');
-            let isValid = true;
-            
-            // Check if we have at least one valid employee row
-            let hasValidRow = false;
-            
-            rows.forEach(row => {
-                const select = row.querySelector('.employee-select');
-                const input = row.querySelector('input[name="amount"]');
-                
-                if (select && input) {
-                    // Mark fields as invalid if they're empty
-                    if (!select.value) {
-                        select.classList.add('is-invalid');
-                        isValid = false;
-                    } else {
-                        select.classList.remove('is-invalid');
-                    }
-                    
-                    if (!input.value || parseFloat(input.value) <= 0) {
-                        input.classList.add('is-invalid');
-                        isValid = false;
-                    } else {
-                        input.classList.remove('is-invalid');
-                        hasValidRow = true;
-                    }
-                }
-            });
-            
-            if (!isValid || !hasValidRow) {
-                event.preventDefault();
-                alert('Please fill out all required fields correctly and ensure at least one employee is selected.');
-            }
-        });
+if (form) {
+    form.addEventListener('submit', function(event) {
+    const employeeSelects = document.querySelectorAll('select[name="employee_id"]');
+    const amountInputs = document.querySelectorAll('input[name="amount"]');
+
+    let isValid = true;
+    let hasValidRow = false;
+
+    employeeSelects.forEach((select, index) => {
+        const amountInput = amountInputs[index];
+
+        if (!select.value) {
+            select.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            select.classList.remove('is-invalid');
+        }
+
+        if (!amountInput.value || parseFloat(amountInput.value) <= 0) {
+            amountInput.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            amountInput.classList.remove('is-invalid');
+            hasValidRow = true;
+        }
+    });
+
+    if (!isValid || !hasValidRow) {
+        event.preventDefault();
+        alert('Please fill out all required fields correctly and ensure at least one employee is selected.');
     }
+});
+}
+
 }

@@ -32,12 +32,12 @@
                      {% endif %}
                 </div>
                 <div class="col-md-3 mb-3">
-                    <label for="company_id" class="form-label">Company:</label>
-                    <select name="company_id" id="company_id" class="form-select">
-                        <option value="">Select Company</option>
-                        {% for company in companies %}
-                            <option value="{{ company.id }}" {% if company_id == company.id %}selected{% endif %}>
-                                {{ company.name }}
+                    <label for="client_id" class="form-label">Client:</label>
+                    <select name="client_id" id="client_id" class="form-select">
+                        <option value="">All Clients</option>
+                        {% for client in clients %}
+                            <option value="{{ client.id }}" {% if client_id == client.id %}selected{% endif %}>
+                                {{ client.name }}
                             </option>
                         {% endfor %}
                     </select>
@@ -74,8 +74,8 @@
 </div>
 
 {% if grouped_checks %}
-    {% for company_name, checks in grouped_checks.items() %}
-        <h4 class="mt-4">{{ company_name }}</h4>
+   {% for client_name, checks in grouped_checks.items() %}
+    <h4 class="mt-4">{{ client_name }}</h4>
         <div class="table-responsive mb-4">
             <table class="table table-hover">
                 <thead>

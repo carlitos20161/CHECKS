@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from wtforms import FieldList, FormField
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, DecimalField, DateField, SelectField, FieldList, FormField, IntegerField, TextAreaField, SelectMultipleField, widgets
 from wtforms.validators import DataRequired, Length, ValidationError, NumberRange, Optional, Email
@@ -50,7 +51,8 @@ class EmployeeForm(FlaskForm):
     """Form for adding or editing employees."""
     name = StringField('Employee Name', validators=[DataRequired(), Length(min=2, max=100)])
     title = StringField('Job Title', validators=[DataRequired(), Length(min=2, max=100)])
-    company_id = SelectField('Company', coerce=int, validators=[DataRequired()])
+    client_id = SelectField("Client", coerce=int, validators=[DataRequired()])
+
 
 class CheckForm(FlaskForm):
     """Form for creating a single check."""
@@ -128,3 +130,5 @@ class BatchCheckForm(FlaskForm):
     client_id = SelectField('Client (Optional)', coerce=int, validators=[Optional()], default='')
     date = DateField('Date', validators=[DataRequired()], default=datetime.date.today)
     # Employee fields will be dynamically populated with JavaScript
+    employees = FieldList(FormField(BatchCheckEmployeeItem), min_entries=1)
+

@@ -110,11 +110,51 @@ def generate_clean_check(check):
 
 
 
-            # === Amount in Words ===
-            amount_words = num2words(check.amount, to='currency', lang='en').replace("euro", "dollars").capitalize()
             c.setFont("Helvetica", 10)
-            c.drawString(left, top - 100, f"{amount_words} dollars")
-            c.line(left, top - 102, right, top - 102)
+
+            # Format amount in words (exclude "dollars")
+            amount_words = num2words(check.amount, to='currency', lang='en').replace("euro", "").replace(",", "").capitalize().strip()
+
+
+            text_y = top - 100
+            text_x = left
+
+            # Position where "dollars" should end
+            dollars_text = "DOLLARS"
+            dollars_width = c.stringWidth(dollars_text, "Helvetica", 10)
+            dollars_x = 7.45 * inch  # Adjust this to match where the box normally ends
+
+            # Draw the amount in words
+            c.drawString(text_x, text_y, amount_words)
+
+            # Width of written words
+            words_width = c.stringWidth(amount_words + " ", "Helvetica", 10)
+            dash_start = text_x + words_width
+            dash_end = dollars_x - dollars_width - 6
+
+            # Number of dashes between
+            dash_width = c.stringWidth("-", "Helvetica", 10)
+            num_dashes = int((dash_end - dash_start) / dash_width)
+
+            # Draw a line ending right before "DOLLARS"
+            c.line(left, top - 102, dollars_x - dollars_width - 6, top - 102)
+
+
+            # Draw filler dashes
+            c.drawString(dash_start, text_y, "-" * num_dashes)
+
+            # Draw "dollars" aligned near right
+            c.drawString(dollars_x - dollars_width, text_y, dollars_text)
+
+
+
+
+
+            # Draw employee name (under the amount words line)
+            c.setFont("Helvetica", 9)
+            c.drawString(left, top - 113, check.employee.name)
+            c.drawRightString(right, top - 113, "VOID AFTER 90 DAYS")
+
 
             # === Memo and Signature ===
             memo_label = "MEMO:"
@@ -123,7 +163,7 @@ def generate_clean_check(check):
             c.setFont("Helvetica", 10)
             
             # Use a shared y-position for both memo and signature
-            memo_and_signature_y = top - 130
+            memo_and_signature_y = top - 150
 
             # === Memo ===
             memo_label = "MEMO:"
@@ -160,7 +200,7 @@ def generate_clean_check(check):
             else:
                 c.setFont("Courier-Bold", 10)
             micr = f"⑈{check.check_number:0>6}⑈ ⑆{check.bank.routing_number}⑆ ⑇{check.bank.account_number}⑇"
-            c.drawCentredString(width / 2, y_offset + 0.88 * inch, micr)
+            c.drawCentredString(width / 2, y_offset + 0.45 * inch, micr)
 
         if middle_section:
             y = top

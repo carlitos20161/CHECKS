@@ -2,213 +2,160 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-10">
-        <div class="card">
-            <div class="card-header">
-                <h2 class="mb-0">Batch Create Checks</h2>
+  <div class="col-md-10">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="mb-0">Batch Create Checks</h2>
+      </div>
+      <div class="card-body">
+        {% if form.bank_id.choices and form.company_id.choices %}
+        <form method="post" id="batchCheckForm">
+          {{ form.csrf_token }}
+
+          <div class="row">
+            {% if session.get('role') == 'admin' %}
+            <div class="col-md-4 mb-3">
+              <label for="bank_id" class="form-label">Bank:</label>
+              {{ form.bank_id(class="form-control", id="bank_id") }}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="company_id" class="form-label">Company:</label>
+              {{ form.company_id(class="form-control", id="company_id") }}
+            </div>
+            {% endif %}
+            <div class="col-md-4 mb-3">
+              <label for="date" class="form-label">Date:</label>
+              {{ form.date(class="form-control", id="date", type="date") }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="client_id" class="form-label">Client (Optional):</label>
+            {{ form.client_id(class="form-select", id="client_id") }}
+          </div>
+
+          <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between">
+              <h5 class="mb-0">Employee Checks</h5>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="showPayDetails">
+                <label class="form-check-label" for="showPayDetails">Show Pay Details</label>
+              </div>
             </div>
             <div class="card-body">
-                {% if form.bank_id.choices and form.company_id.choices %}
-                    <form method="post" id="batchCheckForm">
-                        {{ form.csrf_token }}
-                        
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                              {% if session.get('role') == 'admin' %}
-<div class="col-md-4 mb-3">
-    <label for="bank_id" class="form-label">Bank:</label>
-    {{ form.bank_id(class="form-control", id="bank_id") }}
-    {% if form.bank_id.errors %}
-        <div class="text-danger">
-            {% for error in form.bank_id.errors %}
-                {{ error }}
-            {% endfor %}
-        </div>
-    {% endif %}
-</div>
-{% endif %}
+              <div id="employeeChecks">
+                <!-- First check row -->
+                <div class="row employee-row mb-3">
+                  <div class="col-md-4">
+                    <select name="employee_id" class="form-select employee-select" required>
+                      <option value="">Select Employee</option>
+                      {% for e in employees %}
+                        <option value="{{ e.id }}">{{ e.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <input type="number" name="amount" class="form-control amount-input" placeholder="Amount" step="0.01" min="0.01" required>
+                  </div>
+                  <div class="col-md-3">
+                    <input type="text" name="memo" class="form-control" placeholder="Memo (optional)">
+                  </div>
+                  <div class="col-md-2">
+                    <button type="button" class="btn btn-danger btn-remove-row">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                    <button type="button" class="btn btn-info btn-calculate ms-1">
+                      <i class="fas fa-calculator"></i>
+                    </button>
+                  </div>
 
-                            </div>
-                            
-                            <div class="col-md-4 mb-3">
-                                <label for="company_id" class="form-label">Company:</label>
-                                {{ form.company_id(class="form-control", id="company_id") }}
-                                {% if form.company_id.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.company_id.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="col-md-4 mb-3">
-                                <label for="date" class="form-label">Date:</label>
-                                {{ form.date(class="form-control", id="date", type="date") }}
-                                {% if form.date.errors %}
-                                    <div class="text-danger">
-                                        {% for error in form.date.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
+                  <div class="col-12 pay-details mt-2" style="display: none;">
+                    <div class="card">
+                      <div class="card-body bg-light">
+                        <div class="row">
+                          <div class="col-md-3 mb-2">
+                            <input type="number" name="hours_worked" class="form-control hours-input" placeholder="Hours" step="0.01">
+                          </div>
+                          <div class="col-md-3 mb-2">
+                            <input type="number" name="pay_rate" class="form-control rate-input" placeholder="Rate ($/hr)" step="0.01">
+                          </div>
+                          <div class="col-md-3 mb-2">
+                            <input type="number" name="overtime_hours" class="form-control ot-hours-input" placeholder="OT Hours" step="0.01">
+                          </div>
+                          <div class="col-md-3 mb-2">
+                            <input type="number" name="overtime_rate" class="form-control ot-rate-input" placeholder="OT Rate ($/hr)" step="0.01">
+                          </div>
                         </div>
-                        
-                        <h4 class="mt-4 mb-3">Employee Checks</h4>
-                        
-                        <div class="mb-3">
-                            <label for="client_id" class="form-label">Client (Optional):</label>
-                            {{ form.client_id(class="form-select", id="client_id") }}
-                            {% if form.client_id.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.client_id.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
+                        <div class="row">
+                          <div class="col-md-3 mb-2">
+                            <input type="number" name="holiday_hours" class="form-control holiday-hours-input" placeholder="Holiday Hours" step="0.01">
+                          </div>
+                          <div class="col-md-3 mb-2">
+                            <input type="number" name="holiday_rate" class="form-control holiday-rate-input" placeholder="Holiday Rate" step="0.01">
+                          </div>
+                          <div class="col-md-6 d-flex justify-content-end align-items-end">
+                            <button type="button" class="btn btn-primary btn-sm btn-calculate-row">Calculate Amount</button>
+                          </div>
                         </div>
-                        
-                        <div class="card mb-4">
-                            <div class="card-header d-flex justify-content-between">
-                                <h5 class="mb-0">Employee Checks</h5>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="showPayDetails">
-                                    <label class="form-check-label" for="showPayDetails">Show Pay Details</label>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div id="employeeChecks">
-                                    <!-- Employee rows will be added here dynamically -->
-                                    <div class="row employee-row mb-3">
-                                        <div class="col-md-4">
-                                            <select name="employee_id" class="form-select employee-select" required>
-                                                <option value="">Select Employee</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <input type="number" name="amount" class="form-control amount-input" placeholder="Amount" step="0.01" min="0.01" required>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <input type="text" name="memo" class="form-control" placeholder="Memo (optional)">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <button type="button" class="btn btn-danger btn-remove-row">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-info btn-calculate ms-1">
-                                                <i class="fas fa-calculator"></i>
-                                            </button>
-                                        </div>
-                                        
-                                        <!-- Pay details section (hidden by default) -->
-                                        <div class="col-12 pay-details mt-2" style="display: none;">
-                                            <div class="card">
-                                                <div class="card-body bg-light">
-                                                    <div class="row">
-                                                        <div class="col-md-3 mb-2">
-                                                            <input type="number" name="hours_worked" class="form-control hours-input" placeholder="Hours" step="0.01" min="0">
-                                                        </div>
-                                                        <div class="col-md-3 mb-2">
-                                                            <input type="number" name="pay_rate" class="form-control rate-input" placeholder="Rate ($/hr)" step="0.01" min="0">
-                                                        </div>
-                                                        <div class="col-md-3 mb-2">
-                                                            <input type="number" name="overtime_hours" class="form-control ot-hours-input" placeholder="OT Hours" step="0.01" min="0">
-                                                        </div>
-                                                        <div class="col-md-3 mb-2">
-                                                            <input type="number" name="overtime_rate" class="form-control ot-rate-input" placeholder="OT Rate ($/hr)" step="0.01" min="0">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row">
-                                                        <div class="col-md-3 mb-2">
-                                                            <input type="number" name="holiday_hours" class="form-control holiday-hours-input" placeholder="Holiday Hours" step="0.01" min="0">
-                                                        </div>
-                                                        <div class="col-md-3 mb-2">
-                                                            <input type="number" name="holiday_rate" class="form-control holiday-rate-input" placeholder="Holiday Rate" step="0.01" min="0">
-                                                        </div>
-                                                        <div class="col-md-6 mb-2 d-flex align-items-end justify-content-end">
-                                                            <button type="button" class="btn btn-primary btn-sm btn-calculate-row">Calculate Amount</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-3 mb-3">
-                            <button type="button" id="addEmployeeRow" class="btn btn-secondary">
-                                <i class="fas fa-plus me-1"></i> Add Another Employee
-                            </button>
-                        </div>
-                        
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-1"></i> Back to Checks
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i> Create Checks
-                            </button>
-                        </div>
-                    </form>
-                {% else %}
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle me-2"></i> You need to create at least one bank and company before batch creating checks.
+                      </div>
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> Back to Checks
-                        </a>
-                        {% if not form.bank_id.choices %}
-                            <a href="{{ url_for('banks_create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i> Create Bank
-                            </a>
-                        {% elif not form.company_id.choices %}
-                            <a href="{{ url_for('companies_create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i> Create Company
-                            </a>
-                        {% endif %}
-                    </div>
-                {% endif %}
+                  </div>
+                </div>
+                <!-- More rows get appended by JS -->
+              </div>
             </div>
+          </div>
+
+          <div class="mt-3 mb-3">
+            <button type="button" id="addEmployeeRow" class="btn btn-secondary">
+              <i class="fas fa-plus me-1"></i> Add Another Employee
+            </button>
+          </div>
+
+          <div class="d-flex justify-content-between mt-4">
+            <a href="{{ url_for('checks_index') }}" class="btn btn-secondary">
+              <i class="fas fa-arrow-left me-1"></i> Back to Checks
+            </a>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save me-1"></i> Create Checks
+            </button>
+          </div>
+        </form>
+        {% else %}
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle me-2"></i> You need at least one bank and company before using batch.
         </div>
+        {% endif %}
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/batch_checks.js') }}"></script>
-<script src="{{ url_for('static', filename='js/batch_checks.js') }}"></script>
 <script>
-    $(document).ready(function () {
-        // === Init employee row functionality
-        const employees = {{ employees|tojson }};
-        initBatchChecksForm(employees);
+  $(document).ready(function () {
+    const employees = {{ employees | tojson }};
+    initBatchChecksForm(employees);
 
-        // === Fetch clients when company changes
-        $('#company_id').on('change', function () {
-            const companyId = $(this).val();
-            if (companyId) {
-                $.getJSON(`/api/clients/by-company/${companyId}`, function (data) {
-                    const clientSelect = $('#client_id');
-                    clientSelect.empty();
-                    clientSelect.append($('<option value="">').text('-- Select Client (Optional) --'));
-                    $.each(data, function (index, client) {
-                        clientSelect.append($('<option></option>')
-                            .attr('value', client.id)
-                            .text(client.name));
-                    });
-                });
-            }
+    $('#company_id').on('change', function () {
+      const companyId = $(this).val();
+      if (companyId) {
+        $.getJSON(`/api/clients/by-company/${companyId}`, function (data) {
+          const clientSelect = $('#client_id');
+          clientSelect.empty();
+          clientSelect.append($('<option value="">').text('-- Select Client (Optional) --'));
+          $.each(data, function (i, c) {
+            clientSelect.append($('<option>').val(c.id).text(c.name));
+          });
         });
-
-        // === Trigger on load if a company is already selected
-        if ($('#company_id').val()) {
-            $('#company_id').trigger('change');
-        }
+      }
     });
-</script>
 
+    if ($('#company_id').val()) {
+      $('#company_id').trigger('change');
+    }
+  });
+</script>
 {% endblock %}
