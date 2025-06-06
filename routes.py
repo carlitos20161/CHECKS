@@ -8,6 +8,7 @@ from utils import login_required, role_required
 from models import UserCompanyAssignment
 from werkzeug.datastructures import FileStorage
 from models import UserClientAssignment
+from collections import defaultdict
 
 
 
@@ -339,15 +340,15 @@ def configure_routes(app):
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
             query = query.filter(Check.date <= end_date)
         
+        grouped_checks = defaultdict(lambda: defaultdict(list))
         checks = query.order_by(Check.date.desc(), Check.check_number.desc()).all()
-        # Order by most recent
-        grouped_checks = defaultdict(list)
+
         for check in checks:
             client_name = check.client.name if check.client else "No Client"
-            grouped_checks[client_name].append(check)
-
-        
-        # Get all banks, companies, and employees for filter dropdowns
+            week_key = check.date.strftime("%Y-W%U")
+            grouped_checks[client_name][week_key].append(check)
+                
+                # Get all banks, companies, and employees for filter dropdowns
         if session.get('role') == 'admin':
             banks = Bank.query.all()
             companies = Company.query.all()
@@ -422,10 +423,16 @@ def configure_routes(app):
 
         # Client choices
         # Get clients assigned to this user
-        client_ids = [a.client_id for a in UserClientAssignment.query.filter_by(user_id=user_id).all()]
-        form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
-            (c.id, c.name) for c in CompanyClient.query.filter(CompanyClient.id.in_(client_ids)).all()
-        ]
+        if is_admin:
+            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
+                (c.id, c.name) for c in CompanyClient.query.all()
+            ]
+        else:
+            client_ids = [a.client_id for a in UserClientAssignment.query.filter_by(user_id=user_id).all()]
+            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
+                (c.id, c.name) for c in CompanyClient.query.filter(CompanyClient.id.in_(client_ids)).all()
+            ]
+
 
         # Get selected client (from POST or form default)
         selected_client_id = request.form.get('client_id', type=int) or form.client_id.data

@@ -65,11 +65,14 @@ def generate_clean_check(check):
             # === Date & VOID ===
             c.setFont("Helvetica", 10)
             c.drawString(6.2 * inch, top - 35, "DATE")
-            
             c.drawRightString(right, top - 35, check.date.strftime("%m/%d/%Y"))
+            c.line(6.9 * inch, top - 37, right, top - 37)
 
-            date_line_y = top - 37
-            c.line(6.9 * inch, date_line_y, right, date_line_y)
+            # === ISO Week ===
+            iso_year, iso_week, _ = check.date.isocalendar()
+            week_label = f"Work Week {iso_week:02}"
+            c.setFont("Helvetica-Oblique", 9)
+            c.drawRightString(right, top - 50, week_label)
 
             
 
