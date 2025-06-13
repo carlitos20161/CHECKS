@@ -185,7 +185,32 @@ function initBatchChecksForm(employeesData) {
                 }
             });
         });
+        // Auto-update OT rate when pay rate changes
+
+// Auto-update OT rate when pay rate changes
+function setupRateInputListener(row) {
+    const rateInput = row.querySelector('.rate-input');
+    const otRateInput = row.querySelector('.ot-rate-input');
+
+    if (rateInput && otRateInput) {
+        rateInput.addEventListener('input', () => {
+            const rate = parseFloat(rateInput.value);
+            if (!isNaN(rate) && rate > 0) {
+                otRateInput.value = (rate * 1.5).toFixed(2);
+                calculateRowAmount(row);
+            }
+        });
     }
+}
+
+// Add this inside setupCalculationButtons():
+document.querySelectorAll('.employee-row').forEach(setupRateInputListener);
+
+
+
+
+
+}
     
     // Calculate total amount for a row based on hours and rates
     function calculateRowAmount(row) {
@@ -220,6 +245,8 @@ function initBatchChecksForm(employeesData) {
 
 
 
+
+
 function addEmployeeRow() {
     const rows = document.querySelectorAll('.employee-row');
     const newIndex = rows.length;
@@ -241,6 +268,8 @@ function addEmployeeRow() {
     updateEmployeeOptions();
     setupRemoveButtons();
     setupCalculationButtons();
+    setupRateInputListener(newRow);
+
 }
 
 

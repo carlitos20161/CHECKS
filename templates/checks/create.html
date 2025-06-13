@@ -194,6 +194,15 @@ $(document).ready(function() {
     $('#amount').val(total.toFixed(2));
 });
 
+$('#pay_rate').on('input', function () {
+    const rate = parseFloat($(this).val());
+    if (!isNaN(rate) && rate > 0) {
+        const otRate = (rate * 1.5).toFixed(2);
+        $('#overtime_rate').val(otRate);
+    }
+});
+
+
 });
 
 </script>

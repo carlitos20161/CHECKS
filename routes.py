@@ -141,7 +141,7 @@ def configure_routes(app):
     def companies_create():
         """Create a new company."""
         form = CompanyForm()
-        form.default_bank_id.choices = [(0, '-- Select Bank (Optional) --')] + [(b.id, b.name) for b in Bank.query.all()]
+        form.default_bank_id.choices = [(0, '-- Select Bank -- ')] + [(b.id, b.name) for b in Bank.query.all()]
         
         # Get all clients for the multi-checkbox field
         all_clients = CompanyClient.query.all()
@@ -434,12 +434,12 @@ def configure_routes(app):
             form.bank_id.choices = []  # will be fetched from default_bank_id later
 
         if is_admin:
-            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
+            form.client_id.choices = [(0, '-- Select Client --')] + [
                 (c.id, c.name) for c in CompanyClient.query.all()
             ]
         else:
             assigned_ids = [a.client_id for a in UserClientAssignment.query.filter_by(user_id=user_id).all()]
-            form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
+            form.client_id.choices = [(0, '-- Select Client --')] + [
                 (c.id, c.name) for c in CompanyClient.query.filter(CompanyClient.id.in_(assigned_ids)).all()
             ]
 
