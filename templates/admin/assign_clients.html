@@ -9,16 +9,23 @@
         <select name="user_id" id="user_id" class="form-select" required>
             <option value="">-- Choose User --</option>
             {% for user in users %}
-            <option value="{{ user.id }}">{{ user.username }}</option>
+            <option value="{{ user.id }}" {% if request.form.user_id == user.id|string %}selected{% endif %}>{{ user.username }}</option>
             {% endfor %}
         </select>
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Select Clients:</label>
+        <label for="client_ids" class="form-label">Select Clients:</label>
         {% for client in clients %}
         <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="client_ids" value="{{ client.id }}" id="client{{ client.id }}">
+            <input 
+                class="form-check-input" 
+                type="checkbox" 
+                name="client_ids" 
+                value="{{ client.id }}" 
+                id="client{{ client.id }}"
+                {% if request.form.getlist('client_ids') and (client.id|string) in request.form.getlist('client_ids') %}checked{% endif %}
+            >
             <label class="form-check-label" for="client{{ client.id }}">
                 {{ client.name }}
             </label>
@@ -45,13 +52,12 @@
         </tbody>
     </table>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const userSelect = document.querySelector('select[name="user_id"]');
+    const userSelect = document.querySelector('#user_id');
     const clientCheckboxes = document.querySelectorAll('input[name="client_ids"]');
     const tableBody = document.querySelector('#assignedClientsTable tbody');
 
@@ -59,12 +65,11 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(`/api/assigned-clients/${userId}`)
             .then(res => res.json())
             .then(data => {
-                const assignedClientNames = data.map(d => d.client_name.toLowerCase());
+                const assignedClientIds = data.map(d => d.client_id.toString());
 
                 // Update checkboxes
                 clientCheckboxes.forEach(box => {
-                    const label = box.nextElementSibling.textContent.trim().toLowerCase();
-                    box.checked = assignedClientNames.includes(label);
+                    box.checked = assignedClientIds.includes(box.value);
                 });
 
                 // Update table
@@ -90,7 +95,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // Auto-load if user already selected (e.g., after a postback)
+    // Auto-load if user already selected (e.g., after postback)
     if (userSelect.value) {
         updateClientAssignments(userSelect.value);
     }

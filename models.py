@@ -1,7 +1,9 @@
 from datetime import datetime
-from app import db
+from extensions import db  # ✅ GOOD
 from flask import session
 from werkzeug.security import generate_password_hash, check_password_hash
+
+
 
 class Bank(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -132,3 +134,7 @@ class Check(db.Model):
         if self.holiday_hours and self.holiday_rate:
             total += float(self.holiday_hours) * float(self.holiday_rate)
         return total
+    
+   
+
+ 

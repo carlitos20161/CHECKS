@@ -19,6 +19,28 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+.pay-details-card .card-body {
+  background-color: #2c2f3a;
+  border: 1px solid #444;
+  color: #f1f1f1;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.pay-details-card input::placeholder {
+  color: #bbb;
+  font-size: 0.9rem;
+}
+
+.pay-details-card input {
+  background-color: #1e1f24;
+  color: #f1f1f1;
+  border: 1px solid #444;
+}
+
+
+
+
 /* Custom styling for the forms */
 .form-control:focus, .form-select:focus {
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);

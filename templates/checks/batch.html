@@ -16,7 +16,7 @@
             {% if session.get('role') == 'admin' %}
             <div class="col-md-4 mb-3">
               <label for="bank_id" class="form-label">Bank:</label>
-              {{ form.bank_id(class="form-control", id="bank_id") }}
+              {{ form.bank_id(class="form-control", id="bank_id", disabled = true) }}
             </div>
             <div class="col-md-4 mb-3">
               <label for="company_id" class="form-label">Company:</label>
@@ -69,37 +69,38 @@
                     </button>
                   </div>
 
-                  <div class="col-12 pay-details mt-2" style="display: none;">
-                    <div class="card">
-                      <div class="card-body bg-light">
-                        <div class="row">
-                          <div class="col-md-3 mb-2">
-                            <input type="number" name="hours_worked" class="form-control hours-input" placeholder="Hours" step="0.01">
-                          </div>
-                          <div class="col-md-3 mb-2">
-                            <input type="number" name="pay_rate" class="form-control rate-input" placeholder="Rate ($/hr)" step="0.01">
-                          </div>
-                          <div class="col-md-3 mb-2">
-                            <input type="number" name="overtime_hours" class="form-control ot-hours-input" placeholder="OT Hours" step="0.01">
-                          </div>
-                          <div class="col-md-3 mb-2">
-                            <input type="number" name="overtime_rate" class="form-control ot-rate-input" placeholder="OT Rate ($/hr)" step="0.01">
-                          </div>
-                        </div>
-                        <div class="row">
-                          <div class="col-md-3 mb-2">
-                            <input type="number" name="holiday_hours" class="form-control holiday-hours-input" placeholder="Holiday Hours" step="0.01">
-                          </div>
-                          <div class="col-md-3 mb-2">
-                            <input type="number" name="holiday_rate" class="form-control holiday-rate-input" placeholder="Holiday Rate" step="0.01">
-                          </div>
-                          <div class="col-md-6 d-flex justify-content-end align-items-end">
-                            <button type="button" class="btn btn-primary btn-sm btn-calculate-row">Calculate Amount</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+ <div class="col-12 pay-details mt-2" style="display: none;">
+  <div class="card pay-details-card">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <input type="number" name="hours_worked" class="form-control hours-input" placeholder="Hours" step="0.01">
+        </div>
+        <div class="col-md-3">
+          <input type="number" name="pay_rate" class="form-control rate-input" placeholder="Rate ($/hr)" step="0.01">
+        </div>
+        <div class="col-md-3">
+          <input type="number" name="overtime_hours" class="form-control ot-hours-input" placeholder="OT Hours" step="0.01">
+        </div>
+        <div class="col-md-3">
+          <input type="number" name="overtime_rate" class="form-control ot-rate-input" placeholder="OT Rate ($/hr)" step="0.01">
+        </div>
+        <div class="col-md-3">
+          <input type="number" name="holiday_hours" class="form-control holiday-hours-input" placeholder="Holiday Hours" step="0.01">
+        </div>
+        <div class="col-md-3">
+          <input type="number" name="holiday_rate" class="form-control holiday-rate-input" placeholder="Holiday Rate" step="0.01">
+        </div>
+        <div class="col-md-6 d-flex justify-content-end align-items-end">
+          <button type="button" class="btn btn-outline-primary btn-sm btn-calculate-row">
+            <i class="fas fa-equals me-1"></i> Calculate Amount
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
                 </div>
                 <!-- More rows get appended by JS -->
               </div>
@@ -142,6 +143,7 @@
     $('#company_id').on('change', function () {
       const companyId = $(this).val();
       if (companyId) {
+        // Update clients
         $.getJSON(`/api/clients/by-company/${companyId}`, function (data) {
           const clientSelect = $('#client_id');
           clientSelect.empty();
@@ -150,9 +152,19 @@
             clientSelect.append($('<option>').val(c.id).text(c.name));
           });
         });
+
+        // ✅ Update bank dynamically
+        $.getJSON(`/api/company/${companyId}`, function (data) {
+          if (data.default_bank_id) {
+            $('#bank_id').val(data.default_bank_id);
+          } else {
+            $('#bank_id').val('');
+          }
+        });
       }
     });
 
+    // Auto-trigger on page load
     if ($('#company_id').val()) {
       $('#company_id').trigger('change');
     }

@@ -189,45 +189,36 @@ function initBatchChecksForm(employeesData) {
     
     // Calculate total amount for a row based on hours and rates
     function calculateRowAmount(row) {
-        const hoursInput = row.querySelector('.hours-input');
-        const rateInput = row.querySelector('.rate-input');
-        const otHoursInput = row.querySelector('.ot-hours-input');
-        const otRateInput = row.querySelector('.ot-rate-input');
-        const holidayHoursInput = row.querySelector('.holiday-hours-input');
-        const holidayRateInput = row.querySelector('.holiday-rate-input');
-        const amountInput = row.querySelector('.amount-input');
-        
-        if (amountInput) {
-            const hours = parseFloat(hoursInput.value) || 0;
-            const rate = parseFloat(rateInput.value) || 0;
-            const otHours = parseFloat(otHoursInput.value) || 0;
-            const otRate = parseFloat(otRateInput.value) || 0;
-            const holidayHours = parseFloat(holidayHoursInput.value) || 0;
-            const holidayRate = parseFloat(holidayRateInput.value) || 0;
-            
-            let total = 0;
-            
-            // Regular pay
-            if (hours > 0 && rate > 0) {
-                total += hours * rate;
-            }
-            
-            // Overtime pay
-            if (otHours > 0 && otRate > 0) {
-                total += otHours * otRate;
-            }
-            
-            // Holiday pay
-            if (holidayHours > 0 && holidayRate > 0) {
-                total += holidayHours * holidayRate;
-            }
-            
-            // Format to 2 decimal places and update amount field
-            if (total > 0) {
-                amountInput.value = total.toFixed(2);
-            }
-        }
+    const hoursInput = row.querySelector('.hours-input');
+    const rateInput = row.querySelector('.rate-input');
+    const otHoursInput = row.querySelector('.ot-hours-input');
+    const otRateInput = row.querySelector('.ot-rate-input');
+    const holidayHoursInput = row.querySelector('.holiday-hours-input');
+    const holidayRateInput = row.querySelector('.holiday-rate-input');
+    const amountInput = row.querySelector('.amount-input');
+
+    const hours = parseFloat(hoursInput.value) || 0;
+    const rate = parseFloat(rateInput.value) || 0;
+    const otHours = parseFloat(otHoursInput.value) || 0;
+    const holidayHours = parseFloat(holidayHoursInput.value) || 0;
+    const holidayRate = parseFloat(holidayRateInput.value) || 0;
+
+    const otRate = rate * 1.5; // ✅ override manual input
+    let total = 0;
+
+    if (hours > 0 && rate > 0) total += hours * rate;
+    if (otHours > 0 && rate > 0) {
+        total += otHours * otRate;
+        otRateInput.value = otRate.toFixed(2); // ✅ auto-fill visible input
     }
+    if (holidayHours > 0 && holidayRate > 0) total += holidayHours * holidayRate;
+
+    if (total > 0) {
+        amountInput.value = total.toFixed(2);
+    }
+}
+
+
 
 function addEmployeeRow() {
     const rows = document.querySelectorAll('.employee-row');

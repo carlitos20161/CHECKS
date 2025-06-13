@@ -1,14 +1,14 @@
 from flask import render_template, request, redirect, url_for, flash, abort, send_file, session, jsonify
-from app import db
-from models import Bank, Company, Employee, Check, User, CompanyClient
+from extensions import db
+from collections import defaultdict  # ✅ this is fine
+from models import Bank, Company, Employee, Check, User, CompanyClient, UserCompanyAssignment, UserClientAssignment
 from forms import BankForm, CompanyForm, EmployeeForm, CheckForm, BatchCheckForm, CompanyClientForm
 from utils.pdf_generator import generate_clean_check
-from collections import defaultdict
 from utils import login_required, role_required
-from models import UserCompanyAssignment
 from werkzeug.datastructures import FileStorage
-from models import UserClientAssignment
-from collections import defaultdict
+from utils.check_utils import get_next_global_check_number
+
+
 
 
 
@@ -387,91 +387,84 @@ def configure_routes(app):
             end_date=end_date,
             client_id=client_id
         )
+        
     
+
     @app.route('/checks/create', methods=['GET', 'POST'])
     def checks_create():
         form = CheckForm()
         user_id = session.get('user_id')
         is_admin = session.get('role') == 'admin'
 
-        # === Populate form choices ===
+        # STEP 1: Determine selected client (early)
+        selected_client_id = request.form.get('client_id', type=int) or form.client_id.data
+
+        if not is_admin and request.method == 'POST' and selected_client_id:
+            client = CompanyClient.query.get(selected_client_id)
+            if client and client.company_id:
+                form.company_id.data = client.company_id
+                company = Company.query.get(client.company_id)
+
+                if company:
+                    choice = (company.id, company.name)
+
+                    if not hasattr(form, "company_id") or form.company_id is None:
+                        from wtforms import SelectField
+                        form.company_id = SelectField("Company", coerce=int, choices=[choice])
+                    elif not getattr(form.company_id, "choices", None):
+                        form.company_id.choices = [choice]
+                    elif choice not in form.company_id.choices:
+                        form.company_id.choices.append(choice)
+                else:
+                    print("⚠️ Client has company_id but company not found in DB")
+            else:
+                    print("⚠️ No company_id found for selected client or client is None")
+
+
+        # STEP 2: Populate dropdowns
         if is_admin:
             form.bank_id.choices = [(b.id, b.name) for b in Bank.query.all()]
             form.company_id.choices = [(c.id, c.name) for c in Company.query.all()]
             form.employee_id.choices = [(e.id, e.name) for e in Employee.query.all()]
         else:
-            # Get assigned companies
             companies = db.session.query(Company).join(UserCompanyAssignment).filter(
                 UserCompanyAssignment.user_id == user_id
             ).all()
             form.company_id.choices = [(c.id, c.name) for c in companies]
+            form.bank_id.choices = []  # will be fetched from default_bank_id later
 
-            # Default company
-            selected_company_id = request.form.get('company_id', type=int) or form.company_id.data
-            if not selected_company_id and len(companies) == 1:
-                selected_company_id = companies[0].id
-                form.company_id.data = selected_company_id
-
-            # Employees from that company
-            if selected_company_id:
-                form.employee_id.choices = [(e.id, e.name) for e in Employee.query.filter_by(company_id=selected_company_id).all()]
-            else:
-                form.employee_id.choices = []
-
-            # Skip bank_id for non-admin
-            form.bank_id.choices = []
-
-        # Client choices
-        # Get clients assigned to this user
         if is_admin:
             form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
                 (c.id, c.name) for c in CompanyClient.query.all()
             ]
         else:
-            client_ids = [a.client_id for a in UserClientAssignment.query.filter_by(user_id=user_id).all()]
+            assigned_ids = [a.client_id for a in UserClientAssignment.query.filter_by(user_id=user_id).all()]
             form.client_id.choices = [(0, '-- Select Client (Optional) --')] + [
-                (c.id, c.name) for c in CompanyClient.query.filter(CompanyClient.id.in_(client_ids)).all()
+                (c.id, c.name) for c in CompanyClient.query.filter(CompanyClient.id.in_(assigned_ids)).all()
             ]
 
-
-        # Get selected client (from POST or form default)
-        selected_client_id = request.form.get('client_id', type=int) or form.client_id.data
-
-        # Employees assigned to that client
         if selected_client_id:
-            form.employee_id.choices = [(e.id, e.name) for e in Employee.query.filter_by(client_id=selected_client_id).all()]
+            form.employee_id.choices = [
+                (e.id, e.name) for e in Employee.query.filter_by(client_id=selected_client_id).all()
+            ]
         else:
             form.employee_id.choices = []
 
-                
-
-        # === Form Submit ===
-        if request.method == 'POST':
-            print("📨 Form submitted!")
-            print(f"Form data: {request.form}")
-
-
+        # STEP 3: Form submission
         if form.validate_on_submit():
-            print("📥 POST RECEIVED")
-            print(f"🔍 Admin selected bank: {form.bank_id.data}")
-            print("✅ FORM VALIDATED")
-
             try:
                 if is_admin:
                     bank = Bank.query.get(form.bank_id.data)
-                    print(f"🔍 Admin selected bank: {bank}")
                 else:
                     company = Company.query.get(form.company_id.data)
                     bank = Bank.query.get(company.default_bank_id) if company else None
-                    print(f"🏦 Bank for non-admin: {bank}")
 
                 if not bank:
                     flash('No valid bank found for the selected company.', 'danger')
-                    print("❌ Bank not found")
                     return redirect(url_for('checks_create'))
 
-                check_number = bank.get_next_check_number()
-                print(f"🔢 Check number: {check_number}")
+                
+                check_number = get_next_global_check_number()
 
                 check = Check(
                     bank_id=bank.id,
@@ -490,34 +483,24 @@ def configure_routes(app):
                     memo=form.memo.data,
                     created_by_id=user_id
                 )
-
-                print("💾 Committing check to database...")
                 db.session.add(check)
                 db.session.commit()
-                print("✅ Check committed successfully")
-
-                flash(f'Check #{check_number} created successfully!', 'success')
+                flash(f'✅ Check #{check_number} created successfully!', 'success')
                 return redirect(url_for('checks_index'))
 
             except Exception as e:
-                print("❌ ERROR DURING SUBMISSION:", str(e))
-                flash(f"Something went wrong: {e}", 'danger')
-        
-        else:
-            if request.method == 'POST':
-                print("❌ FORM INVALID")
-                print(form.errors)
-                flash('Please fix the errors in the form.', 'danger')
+                print("❌ Error during check creation:", str(e))
+                flash(f'Something went wrong: {e}', 'danger')
 
-
+        elif request.method == 'POST':
+            print("❌ FORM INVALID")
+            print(form.errors)
+            flash('Please fix the errors in the form.', 'danger')
 
         return render_template('checks/create.html', form=form)
 
 
-
-
-
-
+    
     @app.route('/api/assigned-clients/<int:user_id>')
     @role_required('admin')
     def get_assigned_clients(user_id):
@@ -533,8 +516,6 @@ def configure_routes(app):
 
 
 
-
-
     @app.route('/assign-clients', methods=['GET', 'POST'])
     @role_required('admin')
     def assign_clients():
@@ -545,22 +526,43 @@ def configure_routes(app):
             user_id = int(request.form.get('user_id'))
             selected_client_ids = request.form.getlist('client_ids')
 
-            # Clear previous
-            UserClientAssignment.query.filter_by(user_id=user_id).delete()
+            print(f"🔄 Reassigning clients for user_id={user_id}")
+            print(f"📝 Selected client IDs: {selected_client_ids}")
 
-            # Add new assignments
+            # Clear previous assignments
+            UserClientAssignment.query.filter_by(user_id=user_id).delete()
+            print("🧹 Cleared previous client assignments.")
+
             for client_id in selected_client_ids:
-                db.session.add(UserClientAssignment(user_id=user_id, client_id=int(client_id)))
+                client = CompanyClient.query.get(int(client_id))
+                if client:
+                    db.session.add(UserClientAssignment(user_id=user_id, client_id=client.id))
+                    print(f"✅ Assigned client '{client.name}' (ID={client.id})")
+
+                    if client.company_id:
+                        existing = UserCompanyAssignment.query.filter_by(
+                            user_id=user_id,
+                            company_id=client.company_id
+                        ).first()
+
+                        print(f"🔍 Client's company_id: {client.company_id}")
+                        if not existing:
+                            db.session.add(UserCompanyAssignment(user_id=user_id, company_id=client.company_id))
+                            print(f"🏢 Assigned company_id={client.company_id} for client '{client.name}'")
+                        else:
+                            print(f"⏩ Company already assigned: {client.company_id}")
 
             db.session.commit()
-            flash('Client assignments updated successfully.', 'success')
+            print("✅ DB commit completed.")
+            flash('Client (and related company) assignments updated successfully.', 'success')
             return redirect(url_for('assign_clients'))
 
-
         return render_template('admin/assign_clients.html', users=users, clients=clients)
-    
 
-   
+
+
+
+
     @app.route('/checks/batch', methods=['GET', 'POST'])
     def checks_batch():
         """Create multiple checks at once (dynamically added like single check)."""
@@ -600,11 +602,14 @@ def configure_routes(app):
                 return redirect(url_for('checks_batch'))
 
             if is_admin:
-                bank_id = request.form.get('bank_id', type=int)
+                company_id = request.form.get('company_id', type=int)
+                company = Company.query.get(company_id)
+                bank_id = company.default_bank_id if company else None
                 bank = Bank.query.get(bank_id) if bank_id else None
             else:
                 bank_id = company.default_bank_id
                 bank = Bank.query.get(bank_id) if bank_id else None
+
 
             if not bank:
                 flash('No valid bank found for the selected company.', 'danger')
@@ -643,7 +648,9 @@ def configure_routes(app):
                     if not emp_id or not amount or amount <= 0:
                         raise ValueError("Invalid employee or amount")
 
-                    check_number = bank.get_next_check_number()
+                   
+                    check_number = get_next_global_check_number()
+
                     check = Check(
                         bank_id=bank_id,
                         company_id=company_id,
@@ -842,4 +849,5 @@ def configure_routes(app):
             'address': company.address,
             'default_bank_id': company.default_bank_id
         })
+    
 

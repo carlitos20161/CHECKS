@@ -1,28 +1,12 @@
 import os
-import logging
-
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
-from flask_migrate import Migrate
+from extensions import db, migrate
+from routes import configure_routes  # this is fine here
 
-
-
-
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
-
-class Base(DeclarativeBase):
-    pass
-
-# Initialize SQLAlchemy with our base
-db = SQLAlchemy(model_class=Base)
-
-# Create the Flask app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 
-# Configure the database
+# Config
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///check_management.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
@@ -30,10 +14,15 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
-# Initialize the app with the extensions
+# Init extensions
 db.init_app(app)
-migrate = Migrate(app, db)  # ✅ Move this **after** app is defined and db is initialized
+migrate.init_app(app, db)
 
 with app.app_context():
     import models
     db.create_all()
+
+configure_routes(app)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5050, debug=False)

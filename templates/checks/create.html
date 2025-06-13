@@ -171,17 +171,30 @@ $(document).ready(function() {
         }
     });
 
-    $('#calculateBtn').click(function() {
-        const hours = parseFloat($('#hours_worked').val()) || 0;
-        const rate = parseFloat($('#pay_rate').val()) || 0;
-        const otHours = parseFloat($('#overtime_hours').val()) || 0;
-        const otRate = parseFloat($('#overtime_rate').val()) || 0;
-        const holidayHours = parseFloat($('#holiday_hours').val()) || 0;
-        const holidayRate = parseFloat($('#holiday_rate').val()) || 0;
+    $('#calculateBtn').click(function () {
+    const hours = parseFloat($('#hours_worked').val()) || 0;
+    const rate = parseFloat($('#pay_rate').val()) || 0;
+    const otHours = parseFloat($('#overtime_hours').val()) || 0;
+    let otRate = parseFloat($('#overtime_rate').val());
 
-        const total = (hours * rate) + (otHours * otRate) + (holidayHours * holidayRate);
-        $('#amount').val(total.toFixed(2));
-    });
+    const holidayHours = parseFloat($('#holiday_hours').val()) || 0;
+    const holidayRate = parseFloat($('#holiday_rate').val()) || 0;
+
+    // Auto-fill overtime rate if missing
+    if (!otRate && rate) {
+        otRate = rate * 1.5;
+        $('#overtime_rate').val(otRate.toFixed(2));
+    }
+
+    const total =
+        (hours * rate) +
+        (otHours * otRate) +
+        (holidayHours * holidayRate);
+
+    $('#amount').val(total.toFixed(2));
 });
+
+});
+
 </script>
 {% endblock %}
