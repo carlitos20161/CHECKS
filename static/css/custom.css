@@ -104,6 +104,7 @@ textarea::placeholder {
 
 /* Match all input types (including plain <input> without .form-control) */
 input[type="text"],
+input[type="Company"],
 input[type="date"],
 input[type="number"],
 input[type="email"],
@@ -116,12 +117,14 @@ select {
     border-radius: 6px;
 }
 
+
 /* Optional: unify placeholder color */
 input::placeholder,
 textarea::placeholder {
     color: #aaa;
     opacity: 0.85;
 }
+
 
 
 input[readonly],
@@ -288,6 +291,8 @@ footer {
     background-color: rgba(255, 255, 255, 0.03);
 }
 
+
+
 /* --- Enhancements Appended Below --- */
 
 /* Elevate navbar */
@@ -334,4 +339,39 @@ p, .form-control, .table {
 
 h1, h2, h3, h4 {
     color: #eaeaea;
+}
+select[disabled],
+input[disabled],
+select[readonly],
+input[readonly] {
+    background-color: #2b2b2b !important;
+    color: #ffffff !important;  /* brighter */
+    border-color: #555 !important;
+    opacity: 1 !important;
+    font-weight: 600;
+    appearance: none !important; /* kill native grayed-out style */
+    -webkit-text-fill-color: #ffffff !important; /* fix for Safari */
+}
+.readonly-label {
+  background-color: #2b2b2b;
+  color: #f1f1f1;
+  font-weight: 600;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.bright-disabled {
+  background-color: #2b2b2b !important;
+  color: #ffffff !important;
+  border-color: #666 !important;
+  font-weight: 600;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #ffffff !important; /* for Safari */
+}
+
+.bright-style {
+  background-color: #3a3a3a !important;  /* brighter than default dark */
+  color: #ffffff !important;            /* white text */
+  border-color: #666 !important;
 }

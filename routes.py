@@ -16,6 +16,9 @@ import re
 from forms import CSRFOnlyForm
 from forms import AddUserForm
 from werkzeug.security import generate_password_hash
+from models import User
+from flask import session, redirect, url_for
+
 
 
 
@@ -28,6 +31,32 @@ import io
 import os
 
 def configure_routes(app):
+
+    @app.before_request
+    def enforce_authentication_and_valid_user():
+        allowed_endpoints = ['login', 'static', 'logout']
+        endpoint = request.endpoint or ""
+
+        # Allow login/logout/static only
+        if any(endpoint.startswith(route) for route in allowed_endpoints):
+            return
+
+        user_id = session.get('user_id')
+
+        # Block if no session
+        if not user_id:
+            session.clear()
+            flash("Session expired or unauthorized.", "warning")
+            return redirect(url_for('login'))
+
+        # Block if user has been deleted
+        user = User.query.get(user_id)
+        if not user:
+            session.clear()
+            flash("Your account was removed.", "danger")
+            return redirect(url_for('login'))
+
+
     @app.route('/export-checks/client/<int:client_id>')
     @role_required('admin')  # or remove if all users should access it
     def export_checks_by_client(client_id):
@@ -75,26 +104,6 @@ def configure_routes(app):
 
 
     
-
-    @app.route('/register', methods=['GET', 'POST'])
-    def register():
-        if request.method == 'POST':
-            username = request.form.get('username')
-            password = request.form.get('password')
-
-            if User.query.filter_by(username=username).first():
-                flash('Username already exists.', 'danger')
-                return redirect(url_for('register'))
-
-            user = User(username=username, role='user')
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
-
-            flash('Account created! Please log in.', 'success')
-            return redirect(url_for('login'))
-
-        return render_template('register.html')
 
 
 
@@ -448,6 +457,7 @@ def configure_routes(app):
     
 
     @app.route('/checks/create', methods=['GET', 'POST'])
+    @login_required
     def checks_create():
         form = CheckForm()
         user_id = session.get('user_id')
@@ -622,6 +632,7 @@ def configure_routes(app):
 
 
     @app.route('/checks/batch', methods=['GET', 'POST'])
+    @login_required
     def checks_batch():
         """Create multiple checks at once (dynamically added like single check)."""
         form = BatchCheckForm()

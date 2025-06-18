@@ -20,7 +20,7 @@
             </div>
             <div class="col-md-4 mb-3">
               <label for="company_id" class="form-label">Company:</label>
-              {{ form.company_id(class="form-control", id="company_id") }}
+                {{ form.company_id(class="form-control bright-style", id="company_id") }}
             </div>
             {% endif %}
             <div class="col-md-4 mb-3">
@@ -55,10 +55,10 @@
                     </select>
                   </div>
                   <div class="col-md-3">
-                    <input type="number" name="amount" class="form-control amount-input" placeholder="Amount" step="0.01" min="0.01" required>
+                    <input type="number" name="amount" class="form-control amount-input bright-style" placeholder="Amount" step="0.01" min="0.01" required>
                   </div>
                   <div class="col-md-3">
-                    <input type="text" name="memo" class="form-control" placeholder="Memo (optional)">
+                    <input type="text" name="memo" class="form-control bright-style" placeholder="Memo (optional)">
                   </div>
                   <div class="col-md-2">
                     <button type="button" class="btn btn-danger btn-remove-row">
@@ -74,22 +74,22 @@
     <div class="card-body">
       <div class="row g-3">
         <div class="col-md-3">
-          <input type="number" name="hours_worked" class="form-control hours-input" placeholder="Hours" step="0.01">
+          <input type="number" name="hours_worked" class="form-control hours-input bright-style" placeholder="Hours" step="0.01">
         </div>
         <div class="col-md-3">
-          <input type="number" name="pay_rate" class="form-control rate-input" placeholder="Rate ($/hr)" step="0.01">
+          <input type="number" name="pay_rate" class="form-control rate-input bright-style" placeholder="Rate ($/hr)" step="0.01">
         </div>
         <div class="col-md-3">
-          <input type="number" name="overtime_hours" class="form-control ot-hours-input" placeholder="OT Hours" step="0.01">
+          <input type="number" name="overtime_hours" class="form-control ot-hours-input bright-style" placeholder="OT Hours" step="0.01">
         </div>
         <div class="col-md-3">
-          <input type="number" name="overtime_rate" class="form-control ot-rate-input" placeholder="OT Rate ($/hr)" step="0.01">
+          <input type="number" name="overtime_rate" class="form-control ot-rate-input bright-style" placeholder="OT Rate ($/hr)" step="0.01">
         </div>
         <div class="col-md-3">
-          <input type="number" name="holiday_hours" class="form-control holiday-hours-input" placeholder="Holiday Hours" step="0.01">
+          <input type="number" name="holiday_hours" class="form-control holiday-hours-input bright-style" placeholder="Holiday Hours" step="0.01">
         </div>
         <div class="col-md-3">
-          <input type="number" name="holiday_rate" class="form-control holiday-rate-input" placeholder="Holiday Rate" step="0.01">
+          <input type="number" name="holiday_rate" class="form-control holiday-rate-input bright-style" placeholder="Holiday Rate" step="0.01">
         </div>
         <div class="col-md-6 d-flex justify-content-end align-items-end">
           <button type="button" class="btn btn-outline-primary btn-sm btn-calculate-row">
