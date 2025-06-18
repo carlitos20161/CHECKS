@@ -69,6 +69,14 @@
         </form>
     </div>
 </div>
+{% if client_id %}
+<div class="mb-3">
+    <a href="{{ url_for('export_checks_by_client', client_id=client_id) }}" class="btn btn-outline-success">
+        <i class="fas fa-file-excel me-1"></i> Export Checks for This Client
+    </a>
+</div>
+{% endif %}
+
 
 {% if client_id %}
     <div class="mb-3">
@@ -91,6 +99,9 @@
                 {% if not client_id %}
                     {% set some_check = weeks[week][0] %}
                     <a href="{{ url_for('checks_index', client_id=some_check.client.id if some_check.client else '') }}" class="btn btn-link">View All</a>
+                    
+</a>
+
                 {% endif %}
             </div>
             <div class="table-responsive mb-4">

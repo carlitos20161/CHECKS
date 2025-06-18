@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Check Management System</title>
     <!-- Bootstrap CSS from Replit theme -->
-    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css">
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <!-- Font Awesome for icons -->
@@ -29,6 +33,11 @@
                            href="{{ url_for('index') }}">Home</a>
                     </li>
                     {% if session.get('role') == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/add-user' in request.path %}active{% endif %}" 
+                        href="{{ url_for('add_user') }}">Add a User</a>
+                    </li>
+
                         <li class="nav-item">
                             <a class="nav-link {% if '/assign-clients' in request.path %}active{% endif %}" 
                             href="{{ url_for('assign_clients') }}">Assign Clients</a>

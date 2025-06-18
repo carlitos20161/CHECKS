@@ -1,4 +1,180 @@
-/* Custom CSS for Check Management System */
+/* --- Original Styles (Keep all your existing styles) --- */
+
+body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    letter-spacing: 0.2px;
+    font-size: 15px;
+    background-color: #121212;
+}
+
+h1, h2, h3, h4 {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.card {
+    border-radius: 12px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.15);
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+}
+
+.dashboard-icon {
+  color: #6c757d; /* muted gray */
+  margin-bottom: 15px;
+  transition: color 0.2s ease;
+}
+.dashboard-icon:hover {
+  color: #adb5bd; /* slightly lighter on hover */
+}
+
+.dashboard-card {
+  background-color: #1f1f1f;
+  border: 1px solid #2c2c2c;
+  border-radius: 12px;
+  padding: 25px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-card h5 {
+  font-weight: 600;
+  margin-top: 15px;
+  color: #e9ecef;
+}
+.btn-primary {
+   background-color: #dc3545;
+  border-color: #bd2130;
+}
+
+.btn-success {
+   background-color: #dc3545;
+  border-color: #bd2130;
+}
+
+.btn-warning {
+   background-color: #dc3545;
+  border-color: #bd2130;
+ 
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  border-color: #bd2130;
+}
+.btn-company {
+ background-color: #dc3545;
+  border-color: #bd2130;
+}
+.btn-company:hover {
+  background-color: #dc3545;
+  border-color: #bd2130;
+}
+
+
+.dashboard-card p {
+  color: #bbb;
+  font-size: 0.95rem;
+}
+
+
+/* Input and select background color adjustment */
+input.form-control,
+select.form-select,
+textarea.form-control {
+    background-color: #2b2b2b !important;
+    color: #f1f1f1;
+    border: 1px solid #444;
+}
+
+/* Optional: placeholder color tweak */
+input::placeholder,
+textarea::placeholder {
+    color: #aaa;
+    opacity: 0.8;
+}
+
+/* Match all input types (including plain <input> without .form-control) */
+input[type="text"],
+input[type="date"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+    background-color: #2b2b2b !important;
+    color: #f1f1f1;
+    border: 1px solid #444;
+    border-radius: 6px;
+}
+
+/* Optional: unify placeholder color */
+input::placeholder,
+textarea::placeholder {
+    color: #aaa;
+    opacity: 0.85;
+}
+
+
+input[readonly],
+input[readonly]:focus,
+input[disabled],
+input[disabled]:focus,
+select[disabled],
+select[disabled]:focus {
+    background-color: #2b2b2b !important;
+    color: #aaa !important;
+    border-color: #444 !important;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+
+
+.dashboard-btn {
+  margin-top: 12px;
+  padding: 8px 20px;
+  font-weight: 500;
+  border-radius: 8px;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  color: #eaeaea;
+  transition: all 0.2s ease;
+}
+.dashboard-btn:hover {
+  background-color: #3a3a3a;
+  border-color: #666;
+  color: #ffffff;
+}
+
+/* Professional muted style for dashboard icons */
+.dashboard-icon {
+  color: #adb5bd; /* neutral gray */
+  margin-bottom: 15px;
+  transition: color 0.2s ease;
+}
+
+.dashboard-icon:hover {
+  color: #dee2e6; /* lighter gray on hover */
+}
+
+.card {
+  text-align: center;
+  padding: 20px;
+}
+
+.card h5 {
+  margin-top: 15px;
+  font-weight: 600;
+}
 
 /* Check preview styling */
 .check-preview {
@@ -37,9 +213,6 @@
   color: #f1f1f1;
   border: 1px solid #444;
 }
-
-
-
 
 /* Custom styling for the forms */
 .form-control:focus, .form-select:focus {
@@ -112,5 +285,53 @@ footer {
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(0, 0, 0, 0.075);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* --- Enhancements Appended Below --- */
+
+/* Elevate navbar */
+.navbar {
+    background-color: #1a1a1a !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+/* Button polish */
+.btn-primary, .btn-success {
+    font-weight: 500;
+}
+
+.btn:hover, .btn:focus {
+    opacity: 0.92;
+    transform: translateY(-1px);
+}
+
+/* Dashboard box (optional improvement for homepage cards) */
+.dashboard-card {
+    background-color: #252734;
+    border-radius: 14px;
+    text-align: center;
+    padding: 30px 20px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-card .btn {
+    margin-top: 15px;
+    font-size: 0.875rem;
+}
+
+/* Typography consistency */
+p, .form-control, .table {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4 {
+    color: #eaeaea;
 }

@@ -5,6 +5,9 @@ from wtforms import StringField, DecimalField, DateField, SelectField, FieldList
 from wtforms.validators import DataRequired, Length, ValidationError, NumberRange, Optional, Email
 from wtforms.validators import Optional
 import datetime
+from wtforms import StringField, PasswordField
+from wtforms.validators import DataRequired, Length
+
 
 class MultiCheckboxField(SelectMultipleField):
     """Custom field for multiple checkbox selection."""
@@ -132,3 +135,12 @@ class BatchCheckForm(FlaskForm):
     # Employee fields will be dynamically populated with JavaScript
     employees = FieldList(FormField(BatchCheckEmployeeItem), min_entries=1)
 
+
+class CSRFOnlyForm(FlaskForm):
+    """Empty form for CSRF protection in templates that don't use a full form."""
+    pass
+
+
+class AddUserForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=3)])

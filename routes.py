@@ -7,6 +7,16 @@ from utils.pdf_generator import generate_clean_check
 from utils import login_required, role_required
 from werkzeug.datastructures import FileStorage
 from utils.check_utils import get_next_global_check_number
+from flask import send_file
+import pandas as pd
+from io import BytesIO
+from models import Check  # adjust if needed
+from sqlalchemy.orm import joinedload
+import re
+from forms import CSRFOnlyForm
+from forms import AddUserForm
+from werkzeug.security import generate_password_hash
+
 
 
 
@@ -18,6 +28,53 @@ import io
 import os
 
 def configure_routes(app):
+    @app.route('/export-checks/client/<int:client_id>')
+    @role_required('admin')  # or remove if all users should access it
+    def export_checks_by_client(client_id):
+        from io import BytesIO
+        import pandas as pd
+        import re
+
+        checks = (
+            Check.query
+            .filter(Check.client_id == client_id)
+            .options(joinedload(Check.employee), joinedload(Check.bank), joinedload(Check.created_by))
+            .order_by(Check.date.desc())
+            .all()
+        )
+
+        client = CompanyClient.query.get(client_id)
+        client_name = client.name if client else f"Client_{client_id}"
+
+        data = []
+        for check in checks:
+            data.append({
+                'Check #': check.check_number,
+                'Date': check.date.strftime('%Y-%m-%d'),
+                'Amount': float(check.amount),
+                'Bank': check.bank.name if check.bank else 'N/A',
+                'Employee': check.employee.name if check.employee else 'N/A',
+                'Made by': check.created_by.username if check.created_by else 'N/A'
+            })
+
+        df = pd.DataFrame(data)
+        output = BytesIO()
+
+        safe_name = re.sub(r'[\\/*?:[\]]+', '_', client_name)[:31] or 'Client'
+
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, sheet_name=safe_name, index=False)
+            worksheet = writer.sheets[safe_name]
+            for idx, col in enumerate(df.columns):
+                width = max(df[col].astype(str).map(len).max(), len(col)) + 2
+                worksheet.set_column(idx, idx, width)
+
+        output.seek(0)
+        return send_file(output, download_name=f'{safe_name}_checks.xlsx', as_attachment=True)
+
+
+
+    
 
     @app.route('/register', methods=['GET', 'POST'])
     def register():
@@ -519,6 +576,7 @@ def configure_routes(app):
     @app.route('/assign-clients', methods=['GET', 'POST'])
     @role_required('admin')
     def assign_clients():
+        form = CSRFOnlyForm()
         users = User.query.filter(User.role != 'admin').all()
         clients = CompanyClient.query.all()
 
@@ -557,7 +615,7 @@ def configure_routes(app):
             flash('Client (and related company) assignments updated successfully.', 'success')
             return redirect(url_for('assign_clients'))
 
-        return render_template('admin/assign_clients.html', users=users, clients=clients)
+        return render_template('admin/assign_clients.html', users=users, clients=clients, form=form)
 
 
 
@@ -850,4 +908,43 @@ def configure_routes(app):
             'default_bank_id': company.default_bank_id
         })
     
+    @app.route('/delete-user/<int:user_id>', methods=['POST'])
+    @role_required('admin')  # optional, but good to enforce
+    def delete_user(user_id):
+        user = User.query.get(user_id)
+        if user:
+            try:
+                # Delete assignments first
+                UserClientAssignment.query.filter_by(user_id=user_id).delete()
+                UserCompanyAssignment.query.filter_by(user_id=user_id).delete()
+
+                db.session.delete(user)
+                db.session.commit()
+                return jsonify({'success': True}), 200
+            except Exception as e:
+                print(f"❌ Error deleting user: {e}")
+                return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': 'User not found'}), 404
+
+    @app.route('/add-user', methods=['GET', 'POST'])
+    @role_required('admin')
+    def add_user():
+        form = AddUserForm()
+        if form.validate_on_submit():
+            username = form.username.data
+            password = form.password.data
+
+            # Hash password and create user
+            hashed_password = generate_password_hash(password)
+            new_user = User(username=username, password_hash=hashed_password, role='user')
+
+            db.session.add(new_user)
+            db.session.commit()
+            flash("User added successfully", "success")
+            return redirect(url_for('assign_clients'))
+
+        return render_template('admin/add_user.html', form=form)
+
+
+                    
 
