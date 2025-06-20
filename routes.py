@@ -6,18 +6,21 @@ from forms import BankForm, CompanyForm, EmployeeForm, CheckForm, BatchCheckForm
 from utils.pdf_generator import generate_clean_check
 from utils import login_required, role_required
 from werkzeug.datastructures import FileStorage
-from utils.check_utils import get_next_global_check_number
 from flask import send_file
 import pandas as pd
 from io import BytesIO
 from models import Check  # adjust if needed
 from sqlalchemy.orm import joinedload
-import re
 from forms import CSRFOnlyForm
 from forms import AddUserForm
 from werkzeug.security import generate_password_hash
 from models import User
 from flask import session, redirect, url_for
+from utils.check_utils import get_next_check_number_by_bank
+from flask import Response
+import csv
+from io import StringIO
+
 
 
 
@@ -57,51 +60,7 @@ def configure_routes(app):
             return redirect(url_for('login'))
 
 
-    @app.route('/export-checks/client/<int:client_id>')
-    @role_required('admin')  # or remove if all users should access it
-    def export_checks_by_client(client_id):
-        from io import BytesIO
-        import pandas as pd
-        import re
-
-        checks = (
-            Check.query
-            .filter(Check.client_id == client_id)
-            .options(joinedload(Check.employee), joinedload(Check.bank), joinedload(Check.created_by))
-            .order_by(Check.date.desc())
-            .all()
-        )
-
-        client = CompanyClient.query.get(client_id)
-        client_name = client.name if client else f"Client_{client_id}"
-
-        data = []
-        for check in checks:
-            data.append({
-                'Check #': check.check_number,
-                'Date': check.date.strftime('%Y-%m-%d'),
-                'Amount': float(check.amount),
-                'Bank': check.bank.name if check.bank else 'N/A',
-                'Employee': check.employee.name if check.employee else 'N/A',
-                'Made by': check.created_by.username if check.created_by else 'N/A'
-            })
-
-        df = pd.DataFrame(data)
-        output = BytesIO()
-
-        safe_name = re.sub(r'[\\/*?:[\]]+', '_', client_name)[:31] or 'Client'
-
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, sheet_name=safe_name, index=False)
-            worksheet = writer.sheets[safe_name]
-            for idx, col in enumerate(df.columns):
-                width = max(df[col].astype(str).map(len).max(), len(col)) + 2
-                worksheet.set_column(idx, idx, width)
-
-        output.seek(0)
-        return send_file(output, download_name=f'{safe_name}_checks.xlsx', as_attachment=True)
-
-
+    
 
     
 
@@ -165,7 +124,8 @@ def configure_routes(app):
             bank = Bank(
                 name=form.name.data,
                 routing_number=form.routing_number.data,
-                account_number=form.account_number.data
+                account_number=form.account_number.data,
+                starting_check_number=form.starting_check_number.data
             )
             db.session.add(bank)
             db.session.commit()
@@ -531,7 +491,7 @@ def configure_routes(app):
                     return redirect(url_for('checks_create'))
 
                 
-                check_number = get_next_global_check_number()
+                check_number = get_next_check_number_by_bank(bank.id)
 
                 check = Check(
                     bank_id=bank.id,
@@ -718,7 +678,7 @@ def configure_routes(app):
                         raise ValueError("Invalid employee or amount")
 
                    
-                    check_number = get_next_global_check_number()
+                    check_number = get_next_check_number_by_bank(bank.id)
 
                     check = Check(
                         bank_id=bank_id,
@@ -936,6 +896,80 @@ def configure_routes(app):
                 print(f"❌ Error deleting user: {e}")
                 return jsonify({'error': 'Internal server error'}), 500
         return jsonify({'error': 'User not found'}), 404
+
+    
+    @app.route('/checks/download-selected', methods=['POST'])
+    @login_required
+    @role_required('admin')
+    def bulk_download_checks_pdf():
+        check_ids = request.form.getlist('check_ids')
+        if not check_ids:
+            flash("No checks selected for export.", "warning")
+            return redirect(url_for('checks_index'))
+
+        # Fetch checks
+        checks = Check.query.filter(Check.id.in_(check_ids)).order_by(Check.check_number).all()
+
+        # Create ZIP with one PDF per check
+        from io import BytesIO
+        import zipfile
+        zip_buffer = BytesIO()
+
+        with zipfile.ZipFile(zip_buffer, 'w') as zf:
+            for check in checks:
+                pdf_bytes = generate_clean_check(check)
+  # <- your PDF function returning BytesIO or bytes
+                filename = f"Check_{check.check_number}.pdf"
+                zf.writestr(filename, pdf_bytes.getvalue() if hasattr(pdf_bytes, 'getvalue') else pdf_bytes)
+
+        zip_buffer.seek(0)
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            download_name='selected_checks.zip',
+            as_attachment=True
+        )
+
+
+    @app.route("/checks/export/<int:client_id>/xlsx")
+    @login_required
+    def export_checks_by_client_excel(client_id):
+        checks = Check.query.filter_by(client_id=client_id).join(Company).join(Employee).order_by(Check.date, Check.check_number).all()
+
+        # Group by ISO week
+        grouped = defaultdict(list)
+        for check in checks:
+            week = check.date.strftime("%Y-W%U")  # Week number (Sunday start)
+            grouped[week].append(check)
+
+        writer = pd.ExcelWriter("checks_export.xlsx", engine='xlsxwriter')
+        for week, week_checks in grouped.items():
+            data = []
+            for check in sorted(week_checks, key=lambda c: c.check_number):
+                data.append({
+                    "Check #": check.check_number,
+                    "Date": check.date.strftime("%-m/%-d/%y"),
+                    "Amount": check.amount,
+                    "Employee": check.employee.name if check.employee else "",
+                    "Client": check.client.name if check.client else "",
+                    "Company": check.company.name if check.company else "",
+                })
+
+            df = pd.DataFrame(data)
+            df.to_excel(writer, index=False, sheet_name=week[:31])  # Excel sheet names max length = 31 chars
+
+        output = BytesIO()
+        writer.close()
+        with open("checks_export.xlsx", "rb") as f:
+            output.write(f.read())
+        output.seek(0)
+
+        return send_file(output,
+                        download_name=f"client_{client_id}_checks.xlsx",
+                        as_attachment=True,
+                        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
 
     @app.route('/add-user', methods=['GET', 'POST'])
     @role_required('admin')

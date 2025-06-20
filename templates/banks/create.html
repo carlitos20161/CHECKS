@@ -12,7 +12,7 @@
                     {{ form.csrf_token }}
                     
                     <div class="mb-3">
-                        <label for="name" class="form-label">Bank Name:</label>
+                        <label for="name" class="form-label bright-style">Bank Name:</label>
                         {{ form.name(class="form-control", id="name", placeholder="Enter bank name") }}
                         {% if form.name.errors %}
                             <div class="text-danger">
@@ -24,7 +24,7 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="routing_number" class="form-label">Routing Number:</label>
+                        <label for="routing_number" class="form-label bright-style">Routing Number:</label>
                         {{ form.routing_number(class="form-control", id="routing_number", placeholder="9-digit routing number") }}
                         {% if form.routing_number.errors %}
                             <div class="text-danger">
@@ -37,7 +37,7 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="account_number" class="form-label">Account Number:</label>
+                        <label for="account_number" class="form-label bright-style">Account Number:</label>
                         {{ form.account_number(class="form-control", id="account_number", placeholder="Enter account number") }}
                         {% if form.account_number.errors %}
                             <div class="text-danger">
@@ -48,6 +48,20 @@
                         {% endif %}
                         <div class="form-text">Bank account number (5-20 digits).</div>
                     </div>
+                    <div class="mb-3">
+    <label for="starting_check_number" class="form-label bright-style">Starting Check Number:</label>
+    {{ form.starting_check_number(class="form-control", id="starting_check_number", placeholder="e.g. 50") }}
+    {% if form.starting_check_number.errors %}
+        <div class="text-danger">
+            {% for error in form.starting_check_number.errors %}
+                {{ error }}
+            {% endfor %}
+        </div>
+    {% endif %}
+    <div class="form-text">First check number to be used by this bank.</div>
+</div>
+
+                    
                     
                     <div class="d-flex justify-content-between">
                         <a href="{{ url_for('banks_index') }}" class="btn btn-secondary">

@@ -10,6 +10,7 @@ class Bank(db.Model):
     name = db.Column(db.String(100), nullable=False)
     routing_number = db.Column(db.String(9), nullable=False)
     account_number = db.Column(db.String(20), nullable=False)
+    starting_check_number = db.Column(db.Integer, nullable=False, default=1000)
     last_check_number = db.Column(db.Integer, default=1000)
 
     checks = db.relationship('Check', backref='bank', lazy=True, cascade="all, delete-orphan")
@@ -18,8 +19,12 @@ class Bank(db.Model):
         return f'<Bank {self.name}>'
 
     def get_next_check_number(self):
-        self.last_check_number += 1
+        if self.last_check_number < self.starting_check_number:
+            self.last_check_number = self.starting_check_number
+        else:
+            self.last_check_number += 1
         return self.last_check_number
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)

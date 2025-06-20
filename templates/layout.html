@@ -42,6 +42,14 @@
                             <a class="nav-link {% if '/assign-clients' in request.path %}active{% endif %}" 
                             href="{{ url_for('assign_clients') }}">Assign Clients</a>
                         </li>
+                         <li class="nav-item">
+                        <a class="nav-link {% if '/companies' in request.path %}active{% endif %}" 
+                           href="{{ url_for('companies_index') }}">Companies</a>
+                    </li>
+                      <li class="nav-item">
+                        <a class="nav-link {% if '/banks' in request.path %}active{% endif %}" 
+                           href="{{ url_for('banks_index') }}">Banks</a>
+                    </li>
                             <li class="nav-item">
                                 <a class="nav-link {% if '/clients' in request.path %}active{% endif %}" 
                                 href="{{ url_for('clients_index') }}">Company Clients</a>
@@ -49,14 +57,8 @@
                     {% endif %}
 
                     {% if session.get('role') == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/banks' in request.path %}active{% endif %}" 
-                           href="{{ url_for('banks_index') }}">Banks</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/companies' in request.path %}active{% endif %}" 
-                           href="{{ url_for('companies_index') }}">Companies</a>
-                    </li>
+                  
+                   
                     <li class="nav-item">
                         <a class="nav-link {% if '/employees' in request.path %}active{% endif %}" 
                            href="{{ url_for('employees_index') }}">Employees</a>

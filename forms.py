@@ -7,6 +7,9 @@ from wtforms.validators import Optional
 import datetime
 from wtforms import StringField, PasswordField
 from wtforms.validators import DataRequired, Length
+from wtforms import IntegerField
+from wtforms.validators import DataRequired, NumberRange
+from wtforms import SubmitField
 
 
 class MultiCheckboxField(SelectMultipleField):
@@ -19,6 +22,8 @@ class BankForm(FlaskForm):
     name = StringField('Bank Name', validators=[DataRequired(), Length(min=2, max=100)])
     routing_number = StringField('Routing Number', validators=[DataRequired(), Length(min=9, max=9)])
     account_number = StringField('Account Number', validators=[DataRequired(), Length(min=5, max=20)])
+    starting_check_number = IntegerField('Starting Check Number', validators=[DataRequired(), NumberRange(min=1)], default=1000)
+    submit = SubmitField('Submit')
     
     def validate_routing_number(self, field):
         # Basic validation for routing numbers (9 digits)

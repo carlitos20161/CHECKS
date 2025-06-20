@@ -361,6 +361,10 @@ input[readonly] {
   padding: 0.5rem 0.75rem;
 }
 
+.form-control {
+  color: #fff !important;
+}
+
 .bright-disabled {
   background-color: #2b2b2b !important;
   color: #ffffff !important;

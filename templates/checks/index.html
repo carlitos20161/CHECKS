@@ -66,18 +66,21 @@
                     </a>
                 </div>
             </div>
-        </form>
-    </div>
-</div>
+
+</form>
+
+</div> <!-- End of .card-body -->
+</div> <!-- End of .card -->
+
 {% if client_id %}
+ {% if session.get('role') == 'admin' %}
 <div class="mb-3">
-    <a href="{{ url_for('export_checks_by_client', client_id=client_id) }}" class="btn btn-outline-success">
+    <a href="{{ url_for('export_checks_by_client_excel', client_id=client_id) }}" class="btn btn-outline-success">
         <i class="fas fa-file-excel me-1"></i> Export Checks for This Client
     </a>
 </div>
 {% endif %}
-
-
+{% endif %}pdf
 {% if client_id %}
     <div class="mb-3">
         <a href="{{ url_for('checks_index') }}" class="btn btn-outline-secondary">
@@ -87,6 +90,9 @@
 {% endif %}
 
 {% if grouped_checks %}
+    {% if session.get('role') == 'admin' %}
+    <form method="post" action="{{ url_for('bulk_download_checks_pdf') }}">
+    {% endif %}
     {% for client_name, weeks in grouped_checks.items() %}
         <h4 class="mt-4">{{ client_name }}</h4>
 
@@ -99,31 +105,44 @@
                 {% if not client_id %}
                     {% set some_check = weeks[week][0] %}
                     <a href="{{ url_for('checks_index', client_id=some_check.client.id if some_check.client else '') }}" class="btn btn-link">View All</a>
-                    
-</a>
-
                 {% endif %}
             </div>
             <div class="table-responsive mb-4">
                 <table class="table table-hover">
                     <thead>
-                        <tr>
-                            <th>Check #</th>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Bank</th>
-                            <th>Employee</th>
-                            <th>Made by</th>
-                            <th>Actions</th>
-                        </tr>
+                       <tr>
+                        {% if session.get('role') == 'admin' %}
+                        <th><input type="checkbox" class="select-all" data-week="{{ week }}"></th>
+                        {% endif %}
+                        <th>Check #</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        {% if session.get('role') == 'admin' %}
+                        <th>Bank</th>
+                        {% endif %}
+                        <th>Employee</th>
+                        <th>Made by</th>
+                        <th>Actions</th>
+                    </tr>
+
                     </thead>
+
                     <tbody>
                         {% for check in weeks[week] %}
                         <tr>
+                             {% if session.get('role') == 'admin' %}
+                            <td>
+                               
+                                <input type="checkbox" class="check-item" data-week="{{ week }}" name="check_ids" value="{{ check.id }}">
+                            
+                            </td>
+                             {% endif %}
                             <td>{{ check.check_number }}</td>
                             <td>{{ check.date.strftime('%Y-%m-%d') }}</td>
                             <td>${{ check.amount }}</td>
+                            {% if session.get('role') == 'admin' %}
                             <td>{{ check.bank.name }}</td>
+                            {% endif %}
                             <td>{{ check.employee.name }}</td>
                             <td>{{ check.created_by.username if check.created_by else 'Unknown' }}</td>
                             <td>
@@ -151,9 +170,44 @@
             </div>
         {% endfor %}
     {% endfor %}
+    {% if session.get('role') == 'admin' %}
+        <button type="submit" class="btn btn-danger mb-4">
+            <i class="fas fa-file-pdf me-1"></i> Download Selected as PDF
+        </button>
+    </form>
+    {% endif %}
 {% else %}
     <div class="alert alert-info">
         <i class="fas fa-info-circle me-2"></i> No checks found with the current filters. Try adjusting your search criteria or create new checks.
     </div>
 {% endif %}
 {% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".select-all").forEach(function (selectAll) {
+        selectAll.addEventListener("change", function () {
+            const week = this.dataset.week;
+            console.log(`✅ SELECT-ALL changed for week: "${week}"`);
+
+            const checkboxes = document.querySelectorAll(`.check-item[data-week="${week}"]`);
+            console.log(`🔎 Found ${checkboxes.length} checkboxes with data-week="${week}"`);
+
+            checkboxes.forEach(cb => {
+                cb.checked = this.checked;
+                console.log(`➡️ ${this.checked ? "Checked" : "Unchecked"} checkbox with value: ${cb.value}`);
+            });
+
+            if (checkboxes.length === 0) {
+                console.warn(`⚠️ No checkboxes found for week "${week}". Check data-week values in HTML.`);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+
+
+
+
+
